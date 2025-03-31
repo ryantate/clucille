@@ -7,14 +7,14 @@
     FieldType StringField TextField]
    [org.apache.lucene.index IndexWriter IndexReader Term
     IndexableFieldType IndexWriterConfig DirectoryReader
-    FieldInfo StoredFields]
+    StoredFields]
    [org.apache.lucene.queryparser.classic QueryParser]
    [org.apache.lucene.search BooleanClause BooleanClause$Occur
     BooleanQuery BooleanQuery$Builder IndexSearcher Query
-    ScoreDoc Scorer TermQuery TopDocs TotalHits]
+    ScoreDoc TermQuery TopDocs TotalHits]
    [org.apache.lucene.search.highlight Highlighter QueryScorer
     SimpleHTMLFormatter]
-   [org.apache.lucene.util Version AttributeSource]
+   [org.apache.lucene.util Version]
    [org.apache.lucene.store ByteBuffersDirectory NIOFSDirectory Directory]))
 
 (def ^{:dynamic true} *version* Version/LUCENE_CURRENT)
@@ -105,7 +105,7 @@
   (merge {}
          (filter (complement nil?)
                  (map (fn [item]
-                        (if (or (= nil (meta map-in))
+                        (when (or (= nil (meta map-in))
                                 (not= false
                                       (:stored ((first item) (meta map-in)))))
                           item)) map-in))))
@@ -121,7 +121,7 @@
   (let [document (Document.)]
     (doseq [[key value] map]
       (add-field document key value (key (meta map))))
-    (if *content*
+    (when *content*
       (add-field document :_content (concat-values map)))
     document))
 
@@ -179,7 +179,7 @@ fragments."
                          :pre "<b>"
                          :post "</b>"}
                         config)
-          {:keys [field max-fragments separator fragments-key pre post]} config
+          {:keys [field max-fragments separator pre post]} config
           highlighter (Highlighter. (SimpleHTMLFormatter. pre post) scorer)]
       (fn [m]
         (let [str (field m)
