@@ -60,7 +60,7 @@
   :analyzed - when :indexed is enabled use this option to disable/eneble Analyzer for current field.
   :norms - when :indexed is enabled user this option to disable/enable the storing of norms."
   ([document key value]
-     (add-field document key value {}))
+   (add-field document key value {}))
 
   ([document key value meta-map]
    (.add ^Document document
@@ -106,8 +106,8 @@
          (filter (complement nil?)
                  (map (fn [item]
                         (when (or (= nil (meta map-in))
-                                (not= false
-                                      (:stored ((first item) (meta map-in)))))
+                                  (not= false
+                                        (:stored ((first item) (meta map-in)))))
                           item)) map-in))))
 
 (defn- concat-values
@@ -150,26 +150,26 @@
 (defn- document->map
   "Turn a Document object into a map."
   ([^Document document score]
-     (document->map document score (constantly nil)))
+   (document->map document score (constantly nil)))
   ([^Document document score highlighter]
-     (let [m (into {} (for [^Field f (.getFields document)]
-                        [(keyword (.name f)) (.stringValue f)]))
-           fragments (highlighter m) ; so that we can highlight :_content
-           m (dissoc m :_content)]
-       (with-meta
-         m
-         (-> (into {}
-                   (for [^Field f (.getFields document)
-                         :let [^IndexableFieldType field-type (.fieldType f)]]
-                     [(keyword (.name f)) {:indexed (not (nil? (.indexOptions field-type)))
-                                           :stored (.stored field-type)
-                                           :tokenized (.tokenized field-type)}]))
-             (assoc :_fragments fragments :_score score)
-             (dissoc :_content))))))
+   (let [m (into {} (for [^Field f (.getFields document)]
+                      [(keyword (.name f)) (.stringValue f)]))
+         fragments (highlighter m) ; so that we can highlight :_content
+         m (dissoc m :_content)]
+     (with-meta
+       m
+       (-> (into {}
+                 (for [^Field f (.getFields document)
+                       :let [^IndexableFieldType field-type (.fieldType f)]]
+                   [(keyword (.name f)) {:indexed (not (nil? (.indexOptions field-type)))
+                                         :stored (.stored field-type)
+                                         :tokenized (.tokenized field-type)}]))
+           (assoc :_fragments fragments :_score score)
+           (dissoc :_content))))))
 
 (defn- make-highlighter
   "Create a highlighter function which will take a map and return highlighted
-fragments."
+  fragments."
   [^Query query ^IndexSearcher searcher config]
   (if config
     (let [scorer (QueryScorer. (.rewrite query searcher))
@@ -229,13 +229,13 @@ fragments."
 
 (defn search-and-delete
   "Search the supplied index with a query string and then delete all
-of the results."
+  of the results."
   ([index query]
-     (if *content*
-       (search-and-delete index query :_content)
-       (throw (Exception. "No default search field specified"))))
+   (if *content*
+     (search-and-delete index query :_content)
+     (throw (Exception. "No default search field specified"))))
   ([index query default-field]
-     (with-open [writer (index-writer index)]
-       (let [parser ^QueryParser (QueryParser. ^String (as-str default-field) *analyzer*)
-             query  (.parse parser query)]
-         (.deleteDocuments writer (into-array Query [query]))))))
+   (with-open [writer (index-writer index)]
+     (let [parser ^QueryParser (QueryParser. ^String (as-str default-field) *analyzer*)
+           query  (.parse parser query)]
+       (.deleteDocuments writer (into-array Query [query]))))))

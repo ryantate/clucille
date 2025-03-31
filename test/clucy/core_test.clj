@@ -12,7 +12,6 @@
              {:name "Mary Lou" :age 39}])
 
 (deftest core
-
   (testing "clucy/memory-index fn"
     (let [index (clucy/memory-index)]
       (is (not (nil? index)))))
@@ -69,5 +68,5 @@
       (is (== 3 (count (clucy/search index "m*" 10 :page 0 :results-per-page 3))))
       (is (== 1 (count (clucy/search index "m*" 10 :page 1 :results-per-page 3))))
       (is (empty? (set/intersection
-                    (set (clucy/search index "m*" 10 :page 0 :results-per-page 3))
-                    (set (clucy/search index "m*" 10 :page 1 :results-per-page 3))))))))
+                   (set (clucy/search index "m*" 10 :page 0 :results-per-page 3))
+                   (set (clucy/search index "m*" 10 :page 1 :results-per-page 3))))))))
