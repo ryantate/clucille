@@ -1,55 +1,56 @@
-Clucy
+Clucille
 =====
 
-[![Build Status](https://secure.travis-ci.org/weavejester/clucy.png?branch=master)](http://travis-ci.org/weavejester/clucy)
-
-Clucy is a Clojure interface to [Lucene](http://lucene.apache.org/).
+Clucille is a Clojure interface to [Lucene](https://lucene.apache.org/)
+forked from [Clucy](https://github.com/weavejester/clucy).
 
 Installation
 ------------
 
-To install Clucy, add the following dependency to your `project.clj`
+To install Clucille, add the following dependency to your `project.clj`
 file:
 
-    [clucy "0.4.0"]
+    [com.ryantate/clucille {:git/url "https://github.com/ryantate/clucille.git"
+                            :git/tag "v0.5.0"
+			    :git/sha ]	   	     
 
 Usage
 -----
 
-To use Clucy, first require it:
+To use Clucille, first require it:
 
     (ns example
-      (:require [clucy.core :as clucy]))
+      (:require [com.ryantate.clucille :as clucille]))
 
 Then create an index. You can use `(memory-index)`, which stores the search
 index in RAM, or `(disk-index "/path/to/a-folder")`, which stores the index in
 a folder on disk.
 
-    (def index (clucy/memory-index))
+    (def index (clucille/memory-index))
 
 Next, add Clojure maps to the index:
 
-    (clucy/add index
+    (clucille/add index
        {:name "Bob", :job "Builder"}
        {:name "Donald", :job "Computer Scientist"})
 
 You can remove maps just as easily:
 
-    (clucy/delete index
+    (clucille/delete index
        {:name "Bob", :job "Builder"})
 
 Once maps have been added, the index can be searched:
 
-    user=> (clucy/search index "bob" 10)
+    user=> (clucille/search index "bob" 10)
     ({:name "Bob", :job "Builder"})
 
-    user=> (clucy/search index "scientist" 10)
+    user=> (clucille/search index "scientist" 10)
     ({:name "Donald", :job "Computer Scientist"})
 
 You can search and remove all in one step. To remove all of the
 scientists...
 
-    (clucy/search-and-delete index "job:scientist")
+    (clucille/search-and-delete index "job:scientist")
 
 Storing Fields
 --------------

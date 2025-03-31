@@ -1,4 +1,4 @@
-(ns clucy.core
+(ns com.ryantate.clucille
   (:import
    (java.io StringReader File)
    (org.apache.lucene.analysis Analyzer TokenStream)
