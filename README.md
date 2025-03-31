@@ -19,38 +19,38 @@ Usage
 
 To use Clucille, first require it:
 
-    (ns example
-      (:require [com.ryantate.clucille :as clucille]))
+    (ns example				
+      (:require [com.ryantate.clucille :as clucy]))
 
 Then create an index. You can use `(memory-index)`, which stores the search
 index in RAM, or `(disk-index "/path/to/a-folder")`, which stores the index in
 a folder on disk.
 
-    (def index (clucille/memory-index))
+    (def index (clucy/memory-index))
 
 Next, add Clojure maps to the index:
 
-    (clucille/add index
+    (clucy/add index
        {:name "Bob", :job "Builder"}
        {:name "Donald", :job "Computer Scientist"})
 
 You can remove maps just as easily:
 
-    (clucille/delete index
+    (clucy/delete index
        {:name "Bob", :job "Builder"})
 
 Once maps have been added, the index can be searched:
 
-    user=> (clucille/search index "bob" 10)
+    user=> (clucy/search index "bob" 10)
     ({:name "Bob", :job "Builder"})
 
-    user=> (clucille/search index "scientist" 10)
+    user=> (clucy/search index "scientist" 10)
     ({:name "Donald", :job "Computer Scientist"})
 
 You can search and remove all in one step. To remove all of the
 scientists...
 
-    (clucille/search-and-delete index "job:scientist")
+    (clucy/search-and-delete index "job:scientist")
 
 Storing Fields
 --------------
