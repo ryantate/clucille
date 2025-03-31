@@ -5,3 +5,8 @@ clucy*.jar
 pom.xml
 pom.xml.asc
 .lein-failures
+*~
+\#*#
+\.#*
+.cpcache
+.clj-kondo/.cache
