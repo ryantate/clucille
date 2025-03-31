@@ -20,8 +20,9 @@
 (def ^{:dynamic true} *version* Version/LUCENE_CURRENT)
 (def ^{:dynamic true} *analyzer* (StandardAnalyzer.))
 
-;; To avoid a dependency on either contrib or 1.2+
-(defn as-str ^String [x]
+(defn as-str
+  ^String
+  [x]
   (if (keyword? x)
     (name x)
     (str x)))
@@ -61,7 +62,6 @@
   :norms - when :indexed is enabled user this option to disable/enable the storing of norms."
   ([document key value]
    (add-field document key value {}))
-
   ([^Document document key value meta-map]
    (.add document
          (let [analyzed? (not (false? (:analyzed meta-map)))
@@ -149,7 +149,7 @@
 
 (defn- document->map
   "Turn a Document object into a map."
-  ([^Document document score]
+  ([document score]
    (document->map document score (constantly nil)))
   ([^Document document score highlighter]
    (let [m (into {} (for [^Field f (.getFields document)]
