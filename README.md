@@ -7,7 +7,7 @@ forked from [Clucy](https://github.com/weavejester/clucy).
 Installation
 ------------
 
-To install Clucille, add the following dependency to your `project.clj`
+To install Clucille, add the following dependency to your `deps.edn`
 file:
 
 	 com.ryantate/clucille {:git/url "https://github.com/ryantate/clucille.git"
