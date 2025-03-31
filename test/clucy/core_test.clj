@@ -1,7 +1,8 @@
 (ns clucy.core-test
-  (:use clucy.core
-        clojure.test
-        [clojure.set :only [intersection]]))
+  (:require
+   [clojure.set :as set]
+   [clojure.test :refer :all]
+   [clucy.core :as clucy]))
 
 (def people [{:name "Miles" :age 36}
              {:name "Emily" :age 0.3}
@@ -12,61 +13,61 @@
 
 (deftest core
 
-  (testing "memory-index fn"
-    (let [index (memory-index)]
+  (testing "clucy/memory-index fn"
+    (let [index (clucy/memory-index)]
       (is (not (nil? index)))))
 
   (testing "disk-index fn"
-    (let [index (disk-index "/tmp/test-index")]
+    (let [index (clucy/disk-index "/tmp/test-index")]
       (is (not (nil? index)))))
 
   (testing "add fn"
-    (let [index (memory-index)]
-      (doseq [person people] (add index person))
-      (is (== 1 (count (search index "name:miles" 10))))))
+    (let [index (clucy/memory-index)]
+      (doseq [person people] (clucy/add index person))
+      (is (== 1 (count (clucy/search index "name:miles" 10))))))
 
   (testing "delete fn"
-    (let [index (memory-index)]
-      (doseq [person people] (add index person))
-      (delete index (first people))
-      (is (== 0 (count (search index "name:miles" 10))))))
+    (let [index (clucy/memory-index)]
+      (doseq [person people] (clucy/add index person))
+      (clucy/delete index (first people))
+      (is (== 0 (count (clucy/search index "name:miles" 10))))))
 
   (testing "search fn"
-    (let [index (memory-index)]
-      (doseq [person people] (add index person))
-      (is (== 1 (count (search index "name:miles" 10))))
-      (is (== 1 (count (search index "name:miles age:100" 10))))
-      (is (== 0 (count (search index "name:miles AND age:100" 10))))
-      (is (== 0 (count (search index "name:miles age:100" 10 :default-operator :and))))))
+    (let [index (clucy/memory-index)]
+      (doseq [person people] (clucy/add index person))
+      (is (== 1 (count (clucy/search index "name:miles" 10))))
+      (is (== 1 (count (clucy/search index "name:miles age:100" 10))))
+      (is (== 0 (count (clucy/search index "name:miles AND age:100" 10))))
+      (is (== 0 (count (clucy/search index "name:miles age:100" 10 :default-operator :and))))))
 
   (testing "search-and-delete fn"
-    (let [index (memory-index)]
-      (doseq [person people] (add index person))
-      (search-and-delete index "name:mary")
-      (is (== 0 (count (search index "name:mary" 10))))))
+    (let [index (clucy/memory-index)]
+      (doseq [person people] (clucy/add index person))
+      (clucy/search-and-delete index "name:mary")
+      (is (== 0 (count (clucy/search index "name:mary" 10))))))
 
   (testing "search fn with highlighting"
-    (let [index (memory-index)
+    (let [index (clucy/memory-index)
           config {:field :name}]
-      (doseq [person people] (add index person))
+      (doseq [person people] (clucy/add index person))
       (is (= (map #(-> % meta :_fragments)
-                  (search index "name:mary" 10 :highlight config))
+                  (clucy/search index "name:mary" 10 :highlight config))
              ["<b>Mary</b>" "<b>Mary</b> Lou"]))))
 
   (testing "search fn returns scores in metadata"
-    (let [index (memory-index)
-          _ (doseq [person people] (add index person))
-          results (search index "name:mary" 10)]
+    (let [index (clucy/memory-index)
+          _ (doseq [person people] (clucy/add index person))
+          results (clucy/search index "name:mary" 10)]
       (is (true? (every? pos? (map (comp :_score meta) results))))
       (is (= 2 (:_total-hits (meta results))))
       (is (pos? (:_max-score (meta results))))
-      (is (= (count people) (:_total-hits (meta (search index "*:*" 2)))))))
+      (is (= (count people) (:_total-hits (meta (clucy/search index "*:*" 2)))))))
 
   (testing "pagination"
-    (let [index (memory-index)]
-      (doseq [person people] (add index person))
-      (is (== 3 (count (search index "m*" 10 :page 0 :results-per-page 3))))
-      (is (== 1 (count (search index "m*" 10 :page 1 :results-per-page 3))))
-      (is (empty? (intersection
-                    (set (search index "m*" 10 :page 0 :results-per-page 3))
-                    (set (search index "m*" 10 :page 1 :results-per-page 3))))))))
+    (let [index (clucy/memory-index)]
+      (doseq [person people] (clucy/add index person))
+      (is (== 3 (count (clucy/search index "m*" 10 :page 0 :results-per-page 3))))
+      (is (== 1 (count (clucy/search index "m*" 10 :page 1 :results-per-page 3))))
+      (is (empty? (set/intersection
+                    (set (clucy/search index "m*" 10 :page 0 :results-per-page 3))
+                    (set (clucy/search index "m*" 10 :page 1 :results-per-page 3))))))))
