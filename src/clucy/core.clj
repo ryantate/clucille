@@ -17,6 +17,8 @@
    [org.apache.lucene.util Version]
    [org.apache.lucene.store ByteBuffersDirectory NIOFSDirectory Directory]))
 
+(set! *warn-on-reflection* true)
+
 (def ^{:dynamic true} *version* Version/LUCENE_CURRENT)
 (def ^{:dynamic true} *analyzer* (StandardAnalyzer.))
 
@@ -62,8 +64,8 @@
   ([document key value]
    (add-field document key value {}))
 
-  ([document key value meta-map]
-   (.add ^Document document
+  ([^Document document key value meta-map]
+   (.add document
          (let [analyzed? (not (false? (:analyzed meta-map)))
                norms? (not (false? (:norms meta-map)))
                stored? (not (false? (:stored meta-map)))
@@ -82,18 +84,18 @@
                                     StringField/TYPE_STORED
                                     StringField/TYPE_NOT_STORED))
                    ft (.setOmitNorms ft false)]
-               (Field. ^String skey ^String sval ^FieldType ft))
+               (Field. skey sval ^FieldType ft))
 
              (and analyzed? (not norms?))
              (let [ft (FieldType. (if stored?
                                     TextField/TYPE_STORED
                                     TextField/TYPE_NOT_STORED))
                    ft (.setOmitNorms ft true)]
-               (Field. ^String skey ^String sval ^FieldType ft))
+               (Field. skey sval ^FieldType ft))
 
              (and (not analyzed?) (not norms?))
-             (StringField. ^String skey
-                           ^String sval
+             (StringField. skey
+                           sval
                            (if stored?
                              Field$Store/YES
                              Field$Store/NO)))))))
@@ -145,7 +147,7 @@
                  (TermQuery. (Term. (.toLowerCase (as-str key))
                                     (.toLowerCase (as-str value))))
                  BooleanClause$Occur/MUST)))
-        (.deleteDocuments writer (into-array BooleanQuery [(.build qbuilder)]))))))
+        (.deleteDocuments writer ^Query/1 (into-array BooleanQuery [(.build qbuilder)]))))))
 
 (defn- document->map
   "Turn a Document object into a map."
@@ -203,7 +205,7 @@
     (with-open [reader (index-reader index)]
       (let [default-field (or default-field :_content)
             ^IndexSearcher searcher (IndexSearcher. reader)
-            ^QueryParser parser (doto (QueryParser. ^String (as-str default-field)
+            ^QueryParser parser (doto (QueryParser. (as-str default-field)
                                                     *analyzer*)
                                   (.setDefaultOperator (case (or default-operator :or)
                                                          :and QueryParser/AND_OPERATOR
@@ -215,11 +217,11 @@
             end (min (+ start results-per-page) (.value ^TotalHits (.totalHits hits)))
             ^ScoreDoc/1 score-docs (.scoreDocs hits)]
         (doall
-         (with-meta (for [hit (map (partial aget score-docs)
-                                   (range start end))]
+         (with-meta (for [^ScoreDoc hit (map (partial aget score-docs)
+                                             (range start end))]
                       (document->map (.document ^StoredFields (.storedFields searcher)
-                                                (.doc ^ScoreDoc hit))
-                                     (.score ^ScoreDoc hit)
+                                                (.doc hit))
+                                     (.score hit)
                                      highlighter))
            {:_total-hits (.value ^TotalHits (.totalHits hits))
             :_max-score (let [^ScoreDoc/1 score-docs (.scoreDocs hits)]
@@ -236,6 +238,6 @@
      (throw (Exception. "No default search field specified"))))
   ([index query default-field]
    (with-open [writer (index-writer index)]
-     (let [parser ^QueryParser (QueryParser. ^String (as-str default-field) *analyzer*)
+     (let [parser ^QueryParser (QueryParser. (as-str default-field) *analyzer*)
            query  (.parse parser query)]
-       (.deleteDocuments writer (into-array Query [query]))))))
+       (.deleteDocuments writer ^Query/1 (into-array Query [query]))))))
