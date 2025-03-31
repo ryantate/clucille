@@ -81,14 +81,14 @@
              (let [ft (FieldType. (if stored?
                                     StringField/TYPE_STORED
                                     StringField/TYPE_NOT_STORED))
-                   ft (.setOmitNorms false)]
+                   ft (.setOmitNorms ft false)]
                (Field. ^String skey ^String sval ^FieldType ft))
 
              (and analyzed? (not norms?))
              (let [ft (FieldType. (if stored?
                                     TextField/TYPE_STORED
                                     TextField/TYPE_NOT_STORED))
-                   ft (.setOmitNorms true)]
+                   ft (.setOmitNorms ft true)]
                (Field. ^String skey ^String sval ^FieldType ft))
 
              (and (not analyzed?) (not norms?))
