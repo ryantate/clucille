@@ -1,21 +1,19 @@
 (ns clucy.core
   (:import
-   [java.io StringReader File]
-   [org.apache.lucene.analysis Analyzer TokenStream]
-   [org.apache.lucene.analysis.standard StandardAnalyzer]
-   [org.apache.lucene.document Document Field Field$Store
-    FieldType StringField TextField]
-   [org.apache.lucene.index IndexWriter IndexReader Term
-    IndexableFieldType IndexWriterConfig DirectoryReader
-    StoredFields]
-   [org.apache.lucene.queryparser.classic QueryParser]
-   [org.apache.lucene.search BooleanClause BooleanClause$Occur
-    BooleanQuery BooleanQuery$Builder IndexSearcher Query
-    ScoreDoc TermQuery TopDocs TotalHits]
-   [org.apache.lucene.search.highlight Highlighter QueryScorer
-    SimpleHTMLFormatter]
-   [org.apache.lucene.util Version]
-   [org.apache.lucene.store ByteBuffersDirectory NIOFSDirectory Directory]))
+   (java.io StringReader File)
+   (org.apache.lucene.analysis Analyzer TokenStream)
+   (org.apache.lucene.analysis.standard StandardAnalyzer)
+   (org.apache.lucene.document Document Field Field$Store FieldType StringField
+                               TextField)
+   (org.apache.lucene.index DirectoryReader IndexableFieldType IndexReader IndexWriter
+                            IndexWriterConfig StoredFields Term)
+   (org.apache.lucene.queryparser.classic QueryParser)
+   (org.apache.lucene.search BooleanClause BooleanClause$Occur BooleanQuery
+                             BooleanQuery$Builder IndexSearcher Query ScoreDoc
+                             TermQuery TopDocs TotalHits)
+   (org.apache.lucene.search.highlight Highlighter QueryScorer SimpleHTMLFormatter)
+   (org.apache.lucene.util Version)
+   (org.apache.lucene.store ByteBuffersDirectory Directory NIOFSDirectory)))
 
 (set! *warn-on-reflection* true)
 
