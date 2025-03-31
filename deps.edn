@@ -1,0 +1,12 @@
+{:deps {org.apache.lucene/lucene-analysis-common {:mvn/version "10.1.0"}
+        org.apache.lucene/lucene-core {:mvn/version "10.1.0"}
+        org.apache.lucene/lucene-highlighter {:mvn/version "10.1.0"}
+        org.apache.lucene/lucene-queryparser {:mvn/version "10.1.0"}}
+ :paths ["src"]
+ :aliases {:test {:extra-paths ["test"]
+                  :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
+                                                                     :git/sha "dfb30dd"}}
+                  :main-opts ["-m" "cognitect.test-runner"]
+                  :jvm-opts  ["-XX:-OmitStackTraceInFastThrow"
+                              "--add-modules=jdk.incubator.vector"]
+                  :exec-fn cognitect.test-runner.api/test}}}

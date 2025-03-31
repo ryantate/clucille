@@ -1,21 +1,24 @@
 (ns clucy.core
-  (:import (java.io StringReader File)
-           (org.apache.lucene.analysis Analyzer TokenStream)
-           (org.apache.lucene.analysis.standard StandardAnalyzer)
-           (org.apache.lucene.document Document Field Field$Index Field$Store)
-           (org.apache.lucene.index IndexWriter IndexReader Term
-                                    IndexWriterConfig DirectoryReader FieldInfo)
-           (org.apache.lucene.queryparser.classic QueryParser)
-           (org.apache.lucene.search BooleanClause BooleanClause$Occur
-                                     BooleanQuery IndexSearcher Query ScoreDoc
-                                     Scorer TermQuery)
-           (org.apache.lucene.search.highlight Highlighter QueryScorer
-                                               SimpleHTMLFormatter)
-           (org.apache.lucene.util Version AttributeSource)
-           (org.apache.lucene.store NIOFSDirectory RAMDirectory Directory)))
+  (:import
+   [java.io StringReader File]
+   [org.apache.lucene.analysis Analyzer TokenStream]
+   [org.apache.lucene.analysis.standard StandardAnalyzer]
+   [org.apache.lucene.document Document Field Field$Store
+    FieldType StringField TextField]
+   [org.apache.lucene.index IndexWriter IndexReader Term
+    IndexableFieldType IndexWriterConfig DirectoryReader
+    FieldInfo StoredFields]
+   [org.apache.lucene.queryparser.classic QueryParser]
+   [org.apache.lucene.search BooleanClause BooleanClause$Occur
+    BooleanQuery BooleanQuery$Builder IndexSearcher Query
+    ScoreDoc Scorer TermQuery TopDocs TotalHits]
+   [org.apache.lucene.search.highlight Highlighter QueryScorer
+    SimpleHTMLFormatter]
+   [org.apache.lucene.util Version AttributeSource]
+   [org.apache.lucene.store ByteBuffersDirectory NIOFSDirectory Directory]))
 
 (def ^{:dynamic true} *version* Version/LUCENE_CURRENT)
-(def ^{:dynamic true} *analyzer* (StandardAnalyzer. *version*))
+(def ^{:dynamic true} *analyzer* (StandardAnalyzer.))
 
 ;; To avoid a dependency on either contrib or 1.2+
 (defn as-str ^String [x]
@@ -29,19 +32,19 @@
 (defn memory-index
   "Create a new index in RAM."
   []
-  (RAMDirectory.))
+  (ByteBuffersDirectory.))
 
 (defn disk-index
   "Create a new index in a directory on disk."
   [^String dir-path]
-  (NIOFSDirectory. (File. dir-path)))
+  (NIOFSDirectory. (.toPath (File. dir-path))))
 
 (defn- index-writer
   "Create an IndexWriter."
   ^IndexWriter
   [index]
   (IndexWriter. index
-                (IndexWriterConfig. *version* *analyzer*)))
+                (IndexWriterConfig. *analyzer*)))
 
 (defn- index-reader
   "Create an IndexReader."
@@ -60,18 +63,40 @@
      (add-field document key value {}))
 
   ([document key value meta-map]
-     (.add ^Document document
-           (Field. (as-str key) (as-str value)
-                   (if (false? (:stored meta-map))
-                     Field$Store/NO
-                     Field$Store/YES)
-                   (if (false? (:indexed meta-map))
-                     Field$Index/NO
-                     (case [(false? (:analyzed meta-map)) (false? (:norms meta-map))]
-                       [false false] Field$Index/ANALYZED
-                       [true false] Field$Index/NOT_ANALYZED
-                       [false true] Field$Index/ANALYZED_NO_NORMS
-                       [true true] Field$Index/NOT_ANALYZED_NO_NORMS))))))
+   (.add ^Document document
+         (let [analyzed? (not (false? (:analyzed meta-map)))
+               norms? (not (false? (:norms meta-map)))
+               stored? (not (false? (:stored meta-map)))
+               skey (as-str key)
+               sval (as-str value)]
+           (cond
+             (and analyzed? norms?)
+             (TextField. skey
+                         sval
+                         (if stored?
+                           Field$Store/YES
+                           Field$Store/NO))
+
+             (and (not analyzed?) norms?)
+             (let [ft (FieldType. (if stored?
+                                    StringField/TYPE_STORED
+                                    StringField/TYPE_NOT_STORED))
+                   ft (.setOmitNorms false)]
+               (Field. ^String skey ^String sval ^FieldType ft))
+
+             (and analyzed? (not norms?))
+             (let [ft (FieldType. (if stored?
+                                    TextField/TYPE_STORED
+                                    TextField/TYPE_NOT_STORED))
+                   ft (.setOmitNorms true)]
+               (Field. ^String skey ^String sval ^FieldType ft))
+
+             (and (not analyzed?) (not norms?))
+             (StringField. ^String skey
+                           ^String sval
+                           (if stored?
+                             Field$Store/YES
+                             Field$Store/NO)))))))
 
 (defn- map-stored
   "Returns a hash-map containing all of the values in the map that
@@ -113,14 +138,14 @@
   [index & maps]
   (with-open [writer (index-writer index)]
     (doseq [m maps]
-      (let [query (BooleanQuery.)]
+      (let [^BooleanQuery$Builder qbuilder (BooleanQuery$Builder.)]
         (doseq [[key value] m]
-          (.add query
+          (.add qbuilder
                 (BooleanClause.
                  (TermQuery. (Term. (.toLowerCase (as-str key))
                                     (.toLowerCase (as-str value))))
                  BooleanClause$Occur/MUST)))
-        (.deleteDocuments writer query)))))
+        (.deleteDocuments writer (into-array BooleanQuery [(.build qbuilder)]))))))
 
 (defn- document->map
   "Turn a Document object into a map."
@@ -135,8 +160,8 @@
          m
          (-> (into {}
                    (for [^Field f (.getFields document)
-                         :let [field-type (.fieldType f)]]
-                     [(keyword (.name f)) {:indexed (.indexed field-type)
+                         :let [^IndexableFieldType field-type (.fieldType f)]]
+                     [(keyword (.name f)) {:indexed (not (nil? (.indexOptions field-type)))
                                            :stored (.stored field-type)
                                            :tokenized (.tokenized field-type)}]))
              (assoc :_fragments fragments :_score score)
@@ -147,8 +172,7 @@
 fragments."
   [^Query query ^IndexSearcher searcher config]
   (if config
-    (let [indexReader (.getIndexReader searcher)
-          scorer (QueryScorer. (.rewrite query indexReader))
+    (let [scorer (QueryScorer. (.rewrite query searcher))
           config (merge {:field :_content
                          :max-fragments 5
                          :separator "..."
@@ -178,28 +202,30 @@ fragments."
     (throw (Exception. "No default search field specified"))
     (with-open [reader (index-reader index)]
       (let [default-field (or default-field :_content)
-            searcher (IndexSearcher. reader)
-            parser (doto (QueryParser. *version*
-                                       (as-str default-field)
-                                       *analyzer*)
-                     (.setDefaultOperator (case (or default-operator :or)
-                                            :and QueryParser/AND_OPERATOR
-                                            :or  QueryParser/OR_OPERATOR)))
+            ^IndexSearcher searcher (IndexSearcher. reader)
+            ^QueryParser parser (doto (QueryParser. ^String (as-str default-field)
+                                                    *analyzer*)
+                                  (.setDefaultOperator (case (or default-operator :or)
+                                                         :and QueryParser/AND_OPERATOR
+                                                         :or  QueryParser/OR_OPERATOR)))
             query (.parse parser query)
-            hits (.search searcher query (int max-results))
+            ^TopDocs hits (.search searcher query (int max-results))
             highlighter (make-highlighter query searcher highlight)
             start (* page results-per-page)
-            end (min (+ start results-per-page) (.totalHits hits))]
+            end (min (+ start results-per-page) (.value ^TotalHits (.totalHits hits)))
+            ^ScoreDoc/1 score-docs (.scoreDocs hits)]
         (doall
-         (with-meta (for [hit (map (partial aget (.scoreDocs hits))
+         (with-meta (for [hit (map (partial aget score-docs)
                                    (range start end))]
-                      (document->map (.doc ^IndexSearcher searcher
-                                           (.doc ^ScoreDoc hit))
+                      (document->map (.document ^StoredFields (.storedFields searcher)
+                                                (.doc ^ScoreDoc hit))
                                      (.score ^ScoreDoc hit)
-
                                      highlighter))
-           {:_total-hits (.totalHits hits)
-            :_max-score (.getMaxScore hits)}))))))
+           {:_total-hits (.value ^TotalHits (.totalHits hits))
+            :_max-score (let [^ScoreDoc/1 score-docs (.scoreDocs hits)]
+                          (if (zero? (alength score-docs))
+                            Float/NaN
+                            (.score ^ScoreDoc (aget score-docs 0))))}))))))
 
 (defn search-and-delete
   "Search the supplied index with a query string and then delete all
@@ -210,6 +236,6 @@ of the results."
        (throw (Exception. "No default search field specified"))))
   ([index query default-field]
      (with-open [writer (index-writer index)]
-       (let [parser (QueryParser. *version* (as-str default-field) *analyzer*)
+       (let [parser ^QueryParser (QueryParser. ^String (as-str default-field) *analyzer*)
              query  (.parse parser query)]
-         (.deleteDocuments writer query)))))
+         (.deleteDocuments writer (into-array Query [query]))))))
