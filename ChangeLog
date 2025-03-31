@@ -1,3 +1,7 @@
+0.5.2 / 2025-03-31
+
+	* Fix README "project.clj"->"deps.edn"
+
 0.5.1 / 2025-03-31
 
 	* Update ChangeLog
