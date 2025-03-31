@@ -12,8 +12,8 @@
                              BooleanQuery$Builder IndexSearcher Query ScoreDoc
                              TermQuery TopDocs TotalHits)
    (org.apache.lucene.search.highlight Highlighter QueryScorer SimpleHTMLFormatter)
-   (org.apache.lucene.util Version)
-   (org.apache.lucene.store ByteBuffersDirectory Directory NIOFSDirectory)))
+   (org.apache.lucene.store ByteBuffersDirectory Directory NIOFSDirectory)
+   (org.apache.lucene.util Version)))
 
 (set! *warn-on-reflection* true)
 
