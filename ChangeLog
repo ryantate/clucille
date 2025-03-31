@@ -1,3 +1,17 @@
+0.5.1 / 2025-03-31
+
+	* Update ChangeLog
+	* Update README
+
+0.5.0 / 2025-03-31
+
+	* Support for Lucene 10.1.0
+	* Migrate to tools.deps (deps.edn, removing project.clj)
+	* Eliminate reflection
+	* Fork, changing name to Clucille
+	* Move into com.ryantate ns
+	* Linting, various, including idiomatic use of `require`
+
 0.3.0 / 2012-04-10
 
 	* Support for Lucene 3.5.0
