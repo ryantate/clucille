@@ -200,19 +200,19 @@
             highlighter (make-highlighter query searcher highlight)
             start (* page results-per-page)
             end (min (+ start results-per-page) (.value ^TotalHits (.totalHits hits)))
-            ^ScoreDoc/1 score-docs (.scoreDocs hits)]
-        (doall
-         (with-meta (for [^ScoreDoc hit (map (partial aget score-docs)
-                                             (range start end))]
-                      (document->map (.document ^StoredFields (.storedFields searcher)
-                                                (.doc hit))
-                                     (.score hit)
-                                     highlighter))
-           {:_total-hits (.value ^TotalHits (.totalHits hits))
-            :_max-score (let [^ScoreDoc/1 score-docs (.scoreDocs hits)]
-                          (if (zero? (alength score-docs))
-                            Float/NaN
-                            (.score ^ScoreDoc (aget score-docs 0))))}))))))
+            ^ScoreDoc/1 score-docs (.scoreDocs hits)
+            ^StoredFields stored-fields (.storedFields searcher)]
+        (with-meta (mapv (fn [i]
+                           (let [^ScoreDoc hit (aget score-docs i)]
+                             (document->map (.document stored-fields (.doc hit))
+                                            (.score hit)
+                                            highlighter)))
+                         (range start end))
+          {:_total-hits (.value ^TotalHits (.totalHits hits))
+           :_max-score (let [^ScoreDoc/1 score-docs (.scoreDocs hits)]
+                         (if (zero? (alength score-docs))
+                           Float/NaN
+                           (.score ^ScoreDoc (aget score-docs 0))))})))))
 
 (defn search-and-delete
   "Search the supplied index with a query string and then delete all
