@@ -67,7 +67,7 @@ add this to the meta-data for your map.
     (with-meta {:name "Larryd",
                 :job "Writer",
                 :phone "555-212-0202"
-		:bio "When Larry and his friend Jerry began working on a pilot..."
+                :bio "When Larry and his friend Jerry began working on a pilot..."
                 :catchphrase "pretty, pretty good"
 		:summary "Larryd, Writer"}
       {:bio {:stored false
@@ -78,37 +78,38 @@ add this to the meta-data for your map.
 
 When the map above is saved to the index, the `bio` field will be
 available for searching but will not be part of map in the search
-results since the `stored` option is set to `false`. This makes sense
+results since the `:stored` option is set to `false`. This makes sense
 when you are indexing something large (like the full text of a long
 article) and you don't want to pay the price of storing the entire
 text in the index.
 
-The `bio` field is also indexed using custom `IndexOptions` instead
-the default `DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS`.
+The `bio` field is also indexed using custom `IndexOptions` in the
+`:indexed` option, replacing the default
+`DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS`.
 
 The `catchphrase` field will be available for searching and available in
 the results but will not be factored in to the relevance scoring of
-the document since the `norms` options is set to `false`.
+the document since the `:norms` options is set to `false`.
 
 The `summary` field will be stored for display with the search results
 but will not be indexed for searching, since it is redundant with
-other fields being indexed and thus the `indexed` option is set to `false`.
+other fields being indexed and thus the `:indexed` option is set to `false`.
 
-The `phone` field will not be tokenized since the `analyzer` option is
+The `phone` field will not be tokenized since the `:analyzer` option is
 set to `false`.
 
-Note: the `analyzer` and `norms` options do not matter when `indexed`
-is set to `false` since they are indexing options.
+Note: the `:analyzer` and `:norms` options do not matter when
+`:indexed` is set to `false` since they are indexing options.
 
 
 Default search field
 --------------------
 
 A field called "\_content" that contains all of the map's values is
-stored in the index for each map (excluding fields with {:stored false}
+stored in the index for each map (excluding fields with `{:stored false}`
 in the map's metadata). This provides a default field to run all
 searches against. Anytime you call the search function without
 providing a default search field "\_content" is used.
 
-This behavior can be disabled by binding *content* to false, you must
+This behavior can be disabled by binding `*content*` to false, you must
 then specify the default search field with every search invocation.
