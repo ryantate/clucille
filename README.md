@@ -11,8 +11,8 @@ To install Clucille, add the following dependency to your `deps.edn`
 file:
 
 	 com.ryantate/clucille {:git/url "https://github.com/ryantate/clucille.git"
-				:git/tag "v0.5.2"
-				:git/sha "ddf9be0"}
+				:git/tag "v0.5.3"
+				:git/sha "0ddd367"}
 
 Clojure version
 ---------------
