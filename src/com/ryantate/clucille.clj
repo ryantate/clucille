@@ -146,7 +146,7 @@
                  (map (fn [^Field f]
                         (let [^IndexableFieldType field-type (.fieldType f)]
                           [(keyword (.name f))
-                           {:indexed (not (nil? (.indexOptions field-type)))
+                           {:indexed (not (= IndexOptions/NONE (.indexOptions field-type)))
                             :stored (.stored field-type)
                             :tokenized (.tokenized field-type)}])))
                  (.getFields document))
