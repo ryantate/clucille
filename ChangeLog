@@ -1,3 +1,10 @@
+0.5.3 / 2025-04-01
+
+	* Fix bug ignoring :indexed field option.
+	* Add minimum Clojure version to README.
+	* Simplify code.
+	* Improve README formatting.
+
 0.5.2 / 2025-03-31
 
 	* Fix README "project.clj"->"deps.edn"
