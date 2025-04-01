@@ -134,19 +134,24 @@
   ([document score]
    (document->map document score (constantly nil)))
   ([^Document document score highlighter]
-   (let [m (into {} (for [^Field f (.getFields document)]
-                      [(keyword (.name f)) (.stringValue f)]))
+   (let [m (into {}
+                 (map (fn [^Field f]
+                        [(keyword (.name f)) (.stringValue f)]))
+                 (.getFields document))
          fragments (highlighter m) ; so that we can highlight :_content
          m (dissoc m :_content)]
      (with-meta
        m
        (-> (into {}
-                 (for [^Field f (.getFields document)
-                       :let [^IndexableFieldType field-type (.fieldType f)]]
-                   [(keyword (.name f)) {:indexed (not (nil? (.indexOptions field-type)))
-                                         :stored (.stored field-type)
-                                         :tokenized (.tokenized field-type)}]))
-           (assoc :_fragments fragments :_score score)
+                 (map (fn [^Field f]
+                        (let [^IndexableFieldType field-type (.fieldType f)]
+                          [(keyword (.name f))
+                           {:indexed (not (nil? (.indexOptions field-type)))
+                            :stored (.stored field-type)
+                            :tokenized (.tokenized field-type)}])))
+                 (.getFields document))
+           (assoc :_fragments fragments
+                  :_score score)
            (dissoc :_content))))))
 
 (defn- make-highlighter
