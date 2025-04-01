@@ -69,7 +69,7 @@ add this to the meta-data for your map.
                 :phone "555-212-0202"
                 :bio "When Larry and his friend Jerry began working on a pilot..."
                 :catchphrase "pretty, pretty good"
-		:summary "Larryd, Writer"}
+                :summary "Larryd, Writer"}
       {:bio {:stored false
              :indexed org.apache.lucene.index.IndexOptions/DOCS_AND_FREQS}
        :catchphrase {:norms false}
