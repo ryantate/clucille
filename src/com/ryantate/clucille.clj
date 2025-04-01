@@ -3,10 +3,10 @@
    (java.io StringReader File)
    (org.apache.lucene.analysis Analyzer TokenStream)
    (org.apache.lucene.analysis.standard StandardAnalyzer)
-   (org.apache.lucene.document Document Field Field$Store FieldType StringField
-                               TextField)
-   (org.apache.lucene.index DirectoryReader IndexableFieldType IndexReader IndexWriter
-                            IndexWriterConfig StoredFields Term)
+   (org.apache.lucene.document Document Field FieldType)
+   (org.apache.lucene.index DirectoryReader IndexableFieldType IndexOptions
+                            IndexReader IndexWriter IndexWriterConfig StoredFields
+                            Term)
    (org.apache.lucene.queryparser.classic QueryParser)
    (org.apache.lucene.search BooleanClause BooleanClause$Occur BooleanQuery
                              BooleanQuery$Builder IndexSearcher Query ScoreDoc
@@ -58,45 +58,28 @@
   Following options are allowed for meta-map:
   :stored - when false, then do not store the field value in the index.
   :indexed - when false, then do not index the field.
-  :analyzed - when :indexed is enabled use this option to disable/eneble Analyzer for current field.
-  :norms - when :indexed is enabled user this option to disable/enable the storing of norms."
+  :analyzed - when :indexed is enabled use this option to disable/enable Analyzer for current field.
+  :norms - when :indexed is enabled use this option to disable/enable the storing of norms."
   ([document key value]
    (add-field document key value {}))
   ([^Document document key value meta-map]
    (.add document
-         (let [analyzed? (not (false? (:analyzed meta-map)))
-               norms? (not (false? (:norms meta-map)))
-               stored? (not (false? (:stored meta-map)))
+         (let [stored? (not (false? (:stored meta-map)))
+               indexed? (not (false? (:indexed meta-map)))
+               analyzed? (and indexed? (not (false? (:analyzed meta-map))))
+               norms? (and indexed? (not (false? (:norms meta-map))))
                skey (as-str key)
-               sval (as-str value)]
-           (cond
-             (and analyzed? norms?)
-             (TextField. skey
-                         sval
-                         (if stored?
-                           Field$Store/YES
-                           Field$Store/NO))
-
-             (and (not analyzed?) norms?)
-             (let [ft (FieldType. (if stored?
-                                    StringField/TYPE_STORED
-                                    StringField/TYPE_NOT_STORED))
-                   ft (.setOmitNorms ft false)]
-               (Field. skey sval ^FieldType ft))
-
-             (and analyzed? (not norms?))
-             (let [ft (FieldType. (if stored?
-                                    TextField/TYPE_STORED
-                                    TextField/TYPE_NOT_STORED))
-                   ft (.setOmitNorms ft true)]
-               (Field. skey sval ^FieldType ft))
-
-             (and (not analyzed?) (not norms?))
-             (StringField. skey
-                           sval
-                           (if stored?
-                             Field$Store/YES
-                             Field$Store/NO)))))))
+               sval (as-str value)
+               ft (doto (FieldType.)
+                    (.setStored stored?)
+                    (.setIndexOptions (if indexed?
+                                        (if (instance? IndexOptions (:indexed meta-map))
+                                          (:indexed meta-map)
+                                          IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
+                                        IndexOptions/NONE))
+                    (.setTokenized analyzed?)
+                    (.setOmitNorms (not norms?)))]
+           (Field. skey sval ^FieldType ft)))))
 
 (defn- map-stored
   "Returns a hash-map containing all of the values in the map that
