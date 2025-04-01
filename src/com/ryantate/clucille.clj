@@ -85,13 +85,12 @@
   "Returns a hash-map containing all of the values in the map that
   will be stored in the search index."
   [map-in]
-  (merge {}
-         (filter (complement nil?)
-                 (map (fn [item]
-                        (when (or (= nil (meta map-in))
-                                  (not= false
-                                        (:stored ((first item) (meta map-in)))))
-                          item)) map-in))))
+  (if (meta map-in)
+    (into {}
+          (filter (fn [[k _]]
+                    (not (false? (get-in (meta map-in) [k :stored])))))
+          map-in)
+    map-in))
 
 (defn- concat-values
   "Concatenate all the maps values being stored into a single string."
