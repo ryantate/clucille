@@ -14,6 +14,11 @@ file:
 				:git/tag "v0.5.2"
 				:git/sha "ddf9be0"}
 
+Clojure version
+---------------
+
+Clucille requires Clojure 1.12.0 or higher.
+
 Usage
 -----
 
