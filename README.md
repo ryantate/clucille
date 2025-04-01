@@ -57,24 +57,51 @@ scientists...
 
     (clucy/search-and-delete index "job:scientist")
 
-Storing Fields
---------------
+Field options
+-------------
 
 By default all fields in a map are stored and indexed. If you would
 like more fine-grained control over which fields are stored and index,
 add this to the meta-data for your map.
 
-    (with-meta {:name "Stever", :job "Writer", :phone "555-212-0202"}
-      {:phone {:stored false}})
+    (with-meta {:name "Larryd",
+                :job "Writer",
+                :phone "555-212-0202"
+		:bio "When Larry and his friend Jerry began working on a pilot..."
+                :catchphrase "pretty, pretty good"
+		:summary "Larryd, Writer"}
+      {:bio {:stored false
+             :indexed org.apache.lucene.index.IndexOptions/DOCS_AND_FREQS}
+       :catchphrase {:norms false}
+       :summary {:indexed false}
+       :phone {:analyzer false})
 
-When the map above is saved to the index, the phone field will be
+When the map above is saved to the index, the `bio` field will be
 available for searching but will not be part of map in the search
-results. This example is pretty contrived, this makes more sense when
-you are indexing something large (like the full text of a long
+results since the `stored` option is set to `false`. This makes sense
+when you are indexing something large (like the full text of a long
 article) and you don't want to pay the price of storing the entire
 text in the index.
 
-Default Search Field
+The `bio` field is also indexed using custom `IndexOptions` instead
+the default `DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS`.
+
+The `catchphrase` field will be available for searching and available in
+the results but will not be factored in to the relevance scoring of
+the document since the `norms` options is set to `false`.
+
+The `summary` field will be stored for display with the search results
+but will not be indexed for searching, since it is redundant with
+other fields being indexed and thus the `indexed` option is set to `false`.
+
+The `phone` field will not be tokenized since the `analyzer` option is
+set to `false`.
+
+Note: the `analyzer` and `norms` options do not matter when `indexed`
+is set to `false` since they are indexing options.
+
+
+Default search field
 --------------------
 
 A field called "\_content" that contains all of the map's values is
