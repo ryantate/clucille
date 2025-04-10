@@ -56,10 +56,19 @@
 (defn- add-field
   "Add a Field to a Document.
   Following options are allowed for meta-map:
-  :stored - when false, then do not store the field value in the index.
-  :indexed - when false, then do not index the field. when an instance of IndexOptions, set as index options rather than the default (IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
-  :analyzed - when :indexed is enabled use this option to disable/enable Analyzer for current field.
-  :norms - when :indexed is enabled use this option to disable/enable the storing of norms."
+
+  :stored - when false, then do not store the field value in the
+  index.
+
+  :indexed - when false, then do not index the field. when an instance
+  of IndexOptions, set as index options rather than the
+  default (IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
+
+  :analyzed - when :indexed is enabled use this option to
+  disable/enable Analyzer for current field.
+
+  :norms - when :indexed is enabled use this option to disable/enable
+  the storing of norms."
   ([document key value]
    (add-field document key value {}))
   ([^Document document key value meta-map]

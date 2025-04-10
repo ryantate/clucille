@@ -1,8 +1,11 @@
 Clucille
-=====
+========
 
-Clucille is a Clojure interface to [Lucene](https://lucene.apache.org/)
-forked from [Clucy](https://github.com/weavejester/clucy).
+Clucille is a Clojure interface to
+[Lucene](https://lucene.apache.org/) forked from
+[Clucy](https://github.com/weavejester/clucy). It aims to provide
+backward API compatibility with Clucy while working with modern
+(10.1.0) versions of Lucene and adding minor enhancements.
 
 Installation
 ------------
@@ -25,7 +28,8 @@ Usage
 To use Clucille, first require it:
 
     (ns example				
-      (:require [com.ryantate.clucille :as clucy]))
+      (:require
+        [com.ryantate.clucille :as clucy]))
 
 Then create an index. You can use `(memory-index)`, which stores the search
 index in RAM, or `(disk-index "/path/to/a-folder")`, which stores the index in
@@ -56,6 +60,26 @@ You can search and remove all in one step. To remove all of the
 scientists...
 
     (clucy/search-and-delete index "job:scientist")
+
+Changing analyzer
+-----------------
+
+The default analyzer is
+`org.apache.lucene.analysis.standard.StandardAnalyzer`. You may change
+this by rebinding the dynamic var `*analyzer*` when indexing and searching.
+
+    (ns example				
+      (:require
+        [com.ryantate.clucille :as clucy])
+      (:import
+        (org.apache.lucene.analysis.en EnglishAnalyzer)))
+      
+    (def index (clucy/memory-index))
+
+     ;;English stemming lets you find "cats" with "cat"
+    (binding [clucy/*analyzer* (EnglishAnalyzer.)]
+      (clucy/add index {:body "working caffeinated cats" :id 42})
+      (clucy/search index "cat" 10))
 
 Field options
 -------------
@@ -113,5 +137,5 @@ in the map's metadata). This provides a default field to run all
 searches against. Anytime you call the search function without
 providing a default search field "_content" is used.
 
-This behavior can be disabled by binding `*content*` to false, you must
+This behavior can be disabled by rebinding `*content*` to false, you must
 then specify the default search field with every search invocation.
