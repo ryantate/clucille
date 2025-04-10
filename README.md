@@ -116,7 +116,7 @@ By default all fields in a map are stored and indexed, and indexed
 in detail, with scoring and the frequency, position, and offsets
 of terms. If you would like more fine-grained control over which
 fields are stored and indexed, and how they are indexed, add one or
-more of the fields below to the meta-data for your map.
+more of the fields below to the metadata for your map.
 
     (with-meta {:name "Larryd",
                 :job "Writer",
