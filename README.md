@@ -60,9 +60,11 @@ scientists...
 Field options
 -------------
 
-By default all fields in a map are stored and indexed. If you would
-like more fine-grained control over which fields are stored and index,
-add this to the meta-data for your map.
+By default all fields in a map are stored and indexed, and indexed
+in detail, with scoring and the frequency, position, and offsets
+of terms. If you would like more fine-grained control over which
+fields are stored and indexed, and how they are indexed, add one or
+more of the fields below to the meta-data for your map.
 
     (with-meta {:name "Larryd",
                 :job "Writer",
@@ -74,7 +76,7 @@ add this to the meta-data for your map.
              :indexed org.apache.lucene.index.IndexOptions/DOCS_AND_FREQS}
        :catchphrase {:norms false}
        :summary {:indexed false}
-       :phone {:analyzer false})
+       :phone {:analyzer false}})
 
 When the map above is saved to the index, the `bio` field will be
 available for searching but will not be part of map in the search
