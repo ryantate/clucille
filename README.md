@@ -81,6 +81,34 @@ this by rebinding the dynamic var `*analyzer*` when indexing and searching.
       (clucy/add index {:body "working caffeinated cats" :id 42})
       (clucy/search index "cat" 10))
 
+Per-field analyzer
+------------------
+
+The `fields-analyzer` function provides a convenient way to create a
+`PerFieldAnalyzerWrapper`, allowing custom analyzers for certain fields:
+
+    (ns example				
+      (:require
+        [com.ryantate.clucille :as clucy])
+      (:import
+        (org.apache.lucene.analysis.core SimpleAnalyzer)
+        (org.apache.lucene.analysis.en EnglishAnalyzer)))
+
+    (def index (clucy/memory-index))
+
+     ;;tokenize "tags" field but don't stem or filter stopwords
+     (binding [*analyzer* (clucy/fields-analyzer {:tags (SimpleAnalyzer.)}
+                                                 (EnglishAnalyzer.))]
+       (clucy/add index {:body "working caffeinated"
+                         :tags "cats coffee pastry"
+			 :id 42})
+       (clucy/search index "tags:cats" 10)) ;"tags:cat" would fail
+
+The above applies a `SimpleAnalyzer` to the "tags" field and
+`EnglishAnalyzer` to all other fields. You can omit the second,
+fallback analyzer argument and `*analyzer*` will be used as the
+fallback.
+
 Field options
 -------------
 

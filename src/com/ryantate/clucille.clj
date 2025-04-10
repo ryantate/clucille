@@ -1,7 +1,9 @@
 (ns com.ryantate.clucille
   (:import
    (java.io StringReader File)
+   (java.util HashMap)
    (org.apache.lucene.analysis Analyzer TokenStream)
+   (org.apache.lucene.analysis.miscellaneous PerFieldAnalyzerWrapper)
    (org.apache.lucene.analysis.standard StandardAnalyzer)
    (org.apache.lucene.document Document Field FieldType)
    (org.apache.lucene.index DirectoryReader IndexableFieldType IndexOptions
@@ -29,6 +31,22 @@
 
 ;; flag to indicate a default "_content" field should be maintained
 (def ^{:dynamic true} *content* true)
+
+(defn fields-analyzer
+  "Make a PerFieldAnalyzerWrapper based on map of
+  field-keyword->analyzer. Unspecified fields are analyzed with
+  `default-analyzer` or *analyzer*."
+  ([field-analyzers]
+   (fields-analyzer field-analyzers *analyzer*))
+  (^Analyzer [field-analyzers default-analyzer]
+   (let [^HashMap jmap (reduce-kv (fn [^HashMap jmap fkey ^Analyzer fanalyzer]
+                                    (.put jmap (name fkey) fanalyzer)
+                                    jmap)
+                                  (HashMap.)
+                                  field-analyzers)]
+     (if (or (not jmap) (.isEmpty jmap))
+       default-analyzer
+       (PerFieldAnalyzerWrapper. default-analyzer jmap)))))
 
 (defn memory-index
   "Create a new index in RAM."
