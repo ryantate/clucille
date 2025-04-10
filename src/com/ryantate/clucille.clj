@@ -57,29 +57,32 @@
   "Add a Field to a Document.
   Following options are allowed for meta-map:
   :stored - when false, then do not store the field value in the index.
-  :indexed - when false, then do not index the field.
+  :indexed - when false, then do not index the field. when an instance of IndexOptions, set as index options rather than the default (IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
   :analyzed - when :indexed is enabled use this option to disable/enable Analyzer for current field.
   :norms - when :indexed is enabled use this option to disable/enable the storing of norms."
   ([document key value]
    (add-field document key value {}))
   ([^Document document key value meta-map]
    (.add document
-         (let [stored? (not (false? (:stored meta-map)))
-               indexed? (not (false? (:indexed meta-map)))
+         (let [indexed (:indexed meta-map)
+               indexed? (not (false? indexed))
+               stored? (not (false? (:stored meta-map)))
                analyzed? (and indexed? (not (false? (:analyzed meta-map))))
                norms? (and indexed? (not (false? (:norms meta-map))))
-               skey (as-str key)
-               sval (as-str value)
                ft (doto (FieldType.)
                     (.setStored stored?)
-                    (.setIndexOptions (if indexed?
-                                        (if (instance? IndexOptions (:indexed meta-map))
-                                          (:indexed meta-map)
-                                          IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS)
-                                        IndexOptions/NONE))
+                    (.setIndexOptions (cond
+                                        (false? indexed)
+                                        IndexOptions/NONE
+                                        
+                                        (instance? IndexOptions indexed)
+                                        indexed
+                                        
+                                        :else
+                                        IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS))
                     (.setTokenized analyzed?)
                     (.setOmitNorms (not norms?)))]
-           (Field. skey sval ^FieldType ft)))))
+           (Field. (as-str key) (as-str value) ^FieldType ft)))))
 
 (defn- map-stored
   "Returns a hash-map containing all of the values in the map that
