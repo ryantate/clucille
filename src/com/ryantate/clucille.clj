@@ -1,6 +1,10 @@
 (ns com.ryantate.clucille
+  (:require
+   [clojure.string :as str])
   (:import
-   (java.io StringReader File)
+   (java.io File StringReader)
+   (java.net URI URL)
+   (java.nio.file Path)
    (java.util HashMap)
    (org.apache.lucene.analysis Analyzer TokenStream)
    (org.apache.lucene.analysis.miscellaneous PerFieldAnalyzerWrapper)
@@ -54,16 +58,21 @@
   (ByteBuffersDirectory.))
 
 (defn disk-index
-  "Create a new index in a directory on disk."
-  [^String dir-path]
-  (NIOFSDirectory. (.toPath (File. dir-path))))
+  "Create a new index in a directory on disk.
+  Takes string, java.nio.file.Path, java.io.File, java.net.URI, or java.net.URL."
+  [dir-path]
+  (NIOFSDirectory. (condp instance? dir-path
+                     Path dir-path
+                     String (Path/of ^String dir-path (into-array String []))
+                     URL (Path/of ^URI (.toURI ^URL dir-path))
+                     URI (Path/of ^URI dir-path)
+                     File (.toPath ^File dir-path))))
 
 (defn- index-writer
   "Create an IndexWriter."
   ^IndexWriter
   [index]
-  (IndexWriter. index
-                (IndexWriterConfig. *analyzer*)))
+  (IndexWriter. index (IndexWriterConfig. *analyzer*)))
 
 (defn- index-reader
   "Create an IndexReader."
@@ -87,9 +96,9 @@
 
   :norms - when :indexed is enabled use this option to disable/enable
   the storing of norms."
-  ([document key value]
-   (add-field document key value {}))
-  ([^Document document key value meta-map]
+  ([document k v]
+   (add-field document k v {}))
+  ([^Document document k v meta-map]
    (.add document
          (let [indexed (:indexed meta-map)
                indexed? (not (false? indexed))
@@ -109,30 +118,27 @@
                                         IndexOptions/DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS))
                     (.setTokenized analyzed?)
                     (.setOmitNorms (not norms?)))]
-           (Field. (as-str key) (as-str value) ^FieldType ft)))))
-
-(defn- map-stored
-  "Returns a hash-map containing all of the values in the map that
-  will be stored in the search index."
-  [map-in]
-  (if (meta map-in)
-    (into {}
-          (filter (fn [[k _]]
-                    (not (false? (get-in (meta map-in) [k :stored])))))
-          map-in)
-    map-in))
+           (Field. (as-str k) (as-str v) ^FieldType ft)))))
 
 (defn- concat-values
   "Concatenate all the maps values being stored into a single string."
-  [map-in]
-  (apply str (interpose " " (vals (map-stored map-in)))))
+  [m]
+  (str/join " "
+            (if-let [mmeta (meta m)]
+              (into []
+                    (comp
+                     (filter (fn [[k _]]
+                               (not (false? (get-in mmeta [k :stored])))))
+                     (map val))
+                    m)
+              (vals m))))
 
 (defn- map->document
   "Create a Document from a map."
   [map]
   (let [document (Document.)]
-    (doseq [[key value] map]
-      (add-field document key value (key (meta map))))
+    (doseq [[k v] map]
+      (add-field document k v (k (meta map))))
     (when *content*
       (add-field document :_content (concat-values map)))
     document))
@@ -151,11 +157,11 @@
   (with-open [writer (index-writer index)]
     (doseq [m maps]
       (let [^BooleanQuery$Builder qbuilder (BooleanQuery$Builder.)]
-        (doseq [[key value] m]
+        (doseq [[k v] m]
           (.add qbuilder
                 (BooleanClause.
-                 (TermQuery. (Term. (.toLowerCase (as-str key))
-                                    (.toLowerCase (as-str value))))
+                 (TermQuery. (Term. (.toLowerCase (as-str k))
+                                    (.toLowerCase (as-str v))))
                  BooleanClause$Occur/MUST)))
         (.deleteDocuments writer ^Query/1 (into-array BooleanQuery [(.build qbuilder)]))))))
 
@@ -176,7 +182,8 @@
                  (map (fn [^Field f]
                         (let [^IndexableFieldType field-type (.fieldType f)]
                           [(keyword (.name f))
-                           {:indexed (not (= IndexOptions/NONE (.indexOptions field-type)))
+                           {:indexed (not= IndexOptions/NONE
+                                           (.indexOptions field-type))
                             :stored (.stored field-type)
                             :tokenized (.tokenized field-type)}])))
                  (.getFields document))
@@ -256,3 +263,19 @@
      (let [parser ^QueryParser (QueryParser. (as-str default-field) *analyzer*)
            query  (.parse parser query)]
        (.deleteDocuments writer ^Query/1 (into-array Query [query]))))))
+
+
+;;;;VESTIGIAL:
+;;below this point functions are
+;;no longer used but here for backward compat (in case someone still calls them)
+
+(defn- map-stored
+  "Returns a hash-map containing all of the values in the map that
+  will be stored in the search index."
+  [m]
+  (if-let [mmeta  (meta m)]
+    (into {}
+          (filter (fn [[k _]]
+                    (not (false? (get-in mmeta [k :stored])))))
+          m)
+    m))
