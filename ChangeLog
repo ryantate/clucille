@@ -1,8 +1,28 @@
+0.5.5 / 2025-04-12
+
+	* Expand acceptabe types for dir arg in `disk-index`.
+	
+	* Fix incorrect meta field name in README.
+
+0.5.4 / 2025-04-10
+
+	* Add convenience fn for making per-field analyzer
+	
+	* Fix bug setting :indexed in meta of returned document maps.
+	
+	* Improvements to README.
+	
+	* Improvements to docstrings.
+
+
 0.5.3 / 2025-04-01
 
 	* Fix bug ignoring :indexed field option.
+	
 	* Add minimum Clojure version to README.
+	
 	* Simplify code.
+	
 	* Improve README formatting.
 
 0.5.2 / 2025-03-31
@@ -12,15 +32,21 @@
 0.5.1 / 2025-03-31
 
 	* Update ChangeLog
+	
 	* Update README
 
 0.5.0 / 2025-03-31
 
 	* Support for Lucene 10.1.0
+	
 	* Migrate to tools.deps (deps.edn, removing project.clj)
+	
 	* Eliminate reflection
+	
 	* Fork, changing name to Clucille
+	
 	* Move into com.ryantate ns
+	
 	* Linting, various, including idiomatic use of `require`
 
 0.3.0 / 2012-04-10
