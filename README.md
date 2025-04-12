@@ -96,13 +96,13 @@ The `fields-analyzer` function provides a convenient way to create a
 
     (def index (clucy/memory-index))
 
-     ;;tokenize "tags" field but don't stem or filter stopwords
-     (binding [*analyzer* (clucy/fields-analyzer {:tags (SimpleAnalyzer.)}
-                                                 (EnglishAnalyzer.))]
-       (clucy/add index {:body "working caffeinated"
-                         :tags "cats coffee pastry"
-			 :id 42})
-       (clucy/search index "tags:cats" 10)) ;"tags:cat" would fail
+    ;;tokenize "tags" field but don't stem or filter stopwords
+    (binding [*analyzer* (clucy/fields-analyzer {:tags (SimpleAnalyzer.)}
+     	                                         (EnglishAnalyzer.))]
+      (clucy/add index {:body "working caffeinated"
+                        :tags "cats coffee pastry"
+                        :id 42})
+      (clucy/search index "tags:cats" 10)) ;"tags:cat" would fail
 
 The above applies a `SimpleAnalyzer` to the "tags" field and
 `EnglishAnalyzer` to all other fields. You can omit the second,
@@ -128,7 +128,7 @@ more of the fields below to the metadata for your map.
              :indexed org.apache.lucene.index.IndexOptions/DOCS_AND_FREQS}
        :catchphrase {:norms false}
        :summary {:indexed false}
-       :phone {:analyzer false}})
+       :phone {:analyzed false}})
 
 When the map above is saved to the index, the `bio` field will be
 available for searching but will not be part of map in the search
@@ -149,10 +149,10 @@ The `summary` field will be stored for display with the search results
 but will not be indexed for searching, since it is redundant with
 other fields being indexed and thus the `:indexed` option is set to `false`.
 
-The `phone` field will not be tokenized since the `:analyzer` option is
+The `phone` field will not be tokenized since the `:analyzed` option is
 set to `false`.
 
-Note: the `:analyzer` and `:norms` options do not matter when
+Note: the `:analyzed` and `:norms` options do not matter when
 `:indexed` is set to `false` since they are indexing options.
 
 
