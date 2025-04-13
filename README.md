@@ -218,8 +218,8 @@ The `:phone` field will not be tokenized since the `:analyzed` option is
 set to `false`.
 
 The `:_content` field is the default search field. For more on what
-the default search field is, and the `:included` option, see the next
-section.
+the default search field is, and the `:included` option, see [the next
+section](#default-search-field).
 
 Note: the `:analyzed` and `:norms` options do not matter when
 `:indexed` is set to `false` since they are indexing options.
@@ -230,28 +230,38 @@ must have the same field options. In practical terms for clucille
 users, this means you need to make sure field options are consistent
 when you pass multiple maps to `add` or when you use the same writer
 across multiple `add` operations by passing a writer instead of an
-index (see "Optimizing writes and reads" section above).
+index (see "[Optimizing writes and reads](#optimizing-writes-and-reads)" section above).
 
 
 Default search field
 --------------------
 
-A field called `:_content` is stored in the index for each map. This provides a
-default field to run all searches against.
+The `search` function must select a default field to run queries
+against. For example, while the search "name:bob" is clearly run
+against the `:name` field, what about the search "bob"? This would be
+run against the default field.
 
-By default, `:_content` contains all of the map's values, excluding
-those for fields with `{:stored false}` in the map's metadata.
+Normally, clucille will handle this behind the scenes on your
+behalf. It will automatically store a field called `:_content` in the
+index for each map when you call `add`. This field will contain all of
+the map's values, excluding those for fields with `{:stored false}` in
+the map's metadata. Then when you call `search`, it will automatically
+set `:_content` as the default field.
 
-Anytime you call the search function without providing a default
-search field, `:_content` is used. This behavior can be disabled by
-rebinding `*content*` to false. You must then specify the default
-search field with every search invocation.
+There are two things you can do to alter this behavior.
 
-The `:_content` field is stored and indexed in the same default way as
-other fields. Metadata can set options on `:_content` just like any
-other field.
+  1. You can opt out of having `:_content` created on your behalf and
+  selected as the default search field. To do this, rebind `*content`
+  to `false`. You must then, when calling `search`, specify the
+  default search field, like so: `(clucy/search index "bob" 10
+  :default-field :body)`.
+  
+  2. You can keep having the `:_content` field used and generated for
+  you, but alter what other fields are included in it and/or how it is
+  stored and indexed. You can use metadata to set options on
+  `:_content` just like any other field. But `:_content` has an extra
+  option: `:included`. The value of this option should be a
+  set containing keys of fields that should go into `:_content`. This
+  overrides the default selection criterion noted above (fields that
+  are stored).
 
-But `:_content` has an extra metadata option: `:included`. The value
-of this option should be a set containing keys of fields that
-should go into `:_content`. This overrides the default selection
-criterion noted above (fields that are stored).
