@@ -39,7 +39,7 @@
 (defn fields-analyzer
   "Make a PerFieldAnalyzerWrapper based on map of
   field-keyword->analyzer. Unspecified fields are analyzed with
-  `default-analyzer` or *analyzer*."
+  `default-analyzer` or `*analyzer*`."
   ([field-analyzers]
    (fields-analyzer field-analyzers *analyzer*))
   (^Analyzer [field-analyzers default-analyzer]
