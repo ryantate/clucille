@@ -27,40 +27,50 @@ Usage
 
 To use Clucille, first require it:
 
+```clojure
     (ns example				
       (:require
         [com.ryantate.clucille :as clucy]))
+```
 
 Then create an index. You can use `(memory-index)`, which stores the search
 index in RAM, or `(disk-index "/path/to/a-folder")`, which stores the index in
 a folder on disk.
 
+```clojure
     (def index (clucy/memory-index))
-
+```
 Next, add Clojure maps to the index:
 
+```clojure
     (clucy/add index
        {:name "Bob", :job "Builder"}
        {:name "Donald", :job "Computer Scientist"})
+```
 
 You can remove maps just as easily:
 
+```clojure
     (clucy/delete index
        {:name "Bob", :job "Builder"})
+```
 
 Once maps have been added, the index can be searched:
 
+```clojure
     user=> (clucy/search index "bob" 10)
     ({:name "Bob", :job "Builder"})
 
     user=> (clucy/search index "scientist" 10)
     ({:name "Donald", :job "Computer Scientist"})
+```
 
 You can search and remove all in one step. To remove all of the
 scientists...
 
+```clojure
     (clucy/search-and-delete index "job:scientist")
-
+```
 
 Optimizing writes and reads
 ---------------------------
@@ -74,6 +84,7 @@ Writers can be made with `index-writer` and readers with `index-reader`.
 You'll want to make sure to close readers and writers that you
 open. Clojure's `with-open` macro can help with this:
 
+```clojure
     (ns example				
       (:require
         [com.ryantate.clucille :as clucy]))
@@ -92,7 +103,7 @@ open. Clojure's `with-open` macro can help with this:
       (with-open [reader (clucy/index-reader index)]
         {:bob (clucy/search reader "bob" 10)
 	 :scientist (clucy/search reader "scientist" 10)})
-
+```
 
 Note: Writers affect how readers and other writers access an index, in
 part because their changes are not seen by readers until they are
@@ -110,6 +121,7 @@ The default analyzer is
 `org.apache.lucene.analysis.standard.StandardAnalyzer`. You may change
 this by rebinding the dynamic var `*analyzer*` when indexing and searching.
 
+```clojure
     (ns example				
       (:require
         [com.ryantate.clucille :as clucy])
@@ -122,7 +134,7 @@ this by rebinding the dynamic var `*analyzer*` when indexing and searching.
     (binding [clucy/*analyzer* (EnglishAnalyzer.)]
       (clucy/add index {:body "working caffeinated cats" :id 42})
       (clucy/search index "cat" 10))
-
+```
 
 Per-field analyzer
 ------------------
@@ -130,6 +142,7 @@ Per-field analyzer
 The `fields-analyzer` function provides a convenient way to create a
 `PerFieldAnalyzerWrapper`, allowing custom analyzers for certain fields:
 
+```clojure
     (ns example				
       (:require
         [com.ryantate.clucille :as clucy])
@@ -146,6 +159,7 @@ The `fields-analyzer` function provides a convenient way to create a
                         :tags "cats coffee pastry"
                         :id 42})
       (clucy/search index "tags:cats" 10)) ;"tags:cat" would fail
+```
 
 The above applies a `SimpleAnalyzer` to the "tags" field and
 `EnglishAnalyzer` to all other fields. You can omit the second,
@@ -163,6 +177,7 @@ are stored and indexed, and how they are indexed, add one or more of
 the fields below to the metadata for your map before using `add` to
 incorporate it into an index.
 
+```clojure
     (with-meta {:name "Larryd",
                 :job "Writer",
                 :phone "555-212-0202"
@@ -176,6 +191,7 @@ incorporate it into an index.
        :phone {:analyzed false}
        :_content {:stored false
                   :include #{:name :job :bio :catchphrase}})
+```
 
 When the map above is saved to the index, the `:bio` field will be
 available for searching but will not be part of map in the search
