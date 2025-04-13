@@ -107,7 +107,7 @@ open. Clojure's `with-open` macro can help with this:
 	 :scientist (clucy/search reader "scientist" 10)})
 ```
 
-Note: Writers affect how readers and other writers access an index, in
+**Note**: Writers affect how readers and other writers access an index, in
 part because their changes are not seen by readers until they are
 closed. A reader held open and used repeatedly can return different
 results than when a reader is created for each use (for example when
@@ -221,10 +221,10 @@ The `:_content` field is the default search field. For more on what
 the default search field is, and the `:included` option, see [the next
 section](#default-search-field).
 
-Note: the `:analyzed` and `:norms` options do not matter when
+**Note**: the `:analyzed` and `:norms` options do not matter when
 `:indexed` is set to `false` since they are indexing options.
 
-Note also: Lucene requires that field options be consistent within a
+**Note also**: Lucene requires that field options be consistent within a
 "segment," meaning all the records written from a particular writer
 must have the same field options. In practical terms for clucille
 users, this means you need to make sure field options are consistent
@@ -251,17 +251,15 @@ set `:_content` as the default field.
 There are two things you can do to alter this behavior.
 
   1. You can opt out of having `:_content` created on your behalf and
-  selected as the default search field. To do this, rebind `*content`
+  selected as the default search field. To do this, rebind `*content*`
   to `false`. You must then, when calling `search`, specify the
-  default search field, like so: `(clucy/search index "bob" 10
-  :default-field :body)`.
+  default search field, like so: `(clucy/search index "bob" 10 :default-field :body)`.
   
-  2. You can keep having the `:_content` field used and generated for
-  you, but alter what other fields are included in it and/or how it is
-  stored and indexed. You can use metadata to set options on
-  `:_content` just like any other field. But `:_content` has an extra
-  option: `:included`. The value of this option should be a
-  set containing keys of fields that should go into `:_content`. This
-  overrides the default selection criterion noted above (fields that
-  are stored).
+  2. You can continue allowing the `:_content` field but alter what
+  other fields are included in it and/or how it is stored and
+  indexed. You can use metadata to set options on `:_content` just
+  like any other field. But `:_content` has an extra option:
+  `:included`. The value of this option should be a set containing
+  keys of fields that should go into `:_content`. This overrides the
+  default selection criterion noted above (fields that are stored).
 
