@@ -39,6 +39,21 @@
       (is (== 0 (count (clucy/search index "name:miles AND age:100" 10))))
       (is (== 0 (count (clucy/search index "name:miles age:100" 10 :default-operator :and))))))
 
+  (testing "fields metadata"
+    (let [index-no-meta (clucy/memory-index)
+          index-age-meta (clucy/memory-index)
+          index-default-meta (clucy/memory-index)]
+      (apply clucy/add index-no-meta people)
+      (is (= 2 (count (clucy/search index-no-meta "34" 10))))
+      (apply clucy/add
+             index-age-meta
+             (map (fn [m] (with-meta m {:age {:indexed false}})) people))
+      (is (= 0 (count (clucy/search index-age-meta "age:34" 10))))
+      (apply clucy/add
+             index-default-meta
+             (map (fn [m] (with-meta m {:_content {:include #{:name}}})) people))
+      (is (= 0 (count (clucy/search index-default-meta "34" 10))))))
+  
   (testing "search-and-delete fn"
     (let [index (clucy/memory-index)]
       (doseq [person people] (clucy/add index person))
