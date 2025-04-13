@@ -218,7 +218,7 @@ The `:phone` field will not be tokenized since the `:analyzed` option is
 set to `false`.
 
 The `:_content` field is the default search field. For more on what
-the default search field is, and the `:included` option, see [the next
+the default search field is, and the `:include` option, see [the next
 section](#default-search-field).
 
 **Note**: the `:analyzed` and `:norms` options do not matter when
@@ -259,7 +259,7 @@ There are two things you can do to alter this behavior.
   other fields are included in it and/or how it is stored and
   indexed. You can use metadata to set options on `:_content` just
   like any other field. But `:_content` has an extra option:
-  `:included`. The value of this option should be a set containing
+  `:include`. The value of this option should be a set containing
   keys of fields that should go into `:_content`. This overrides the
   default selection criterion noted above (fields that are stored).
 
