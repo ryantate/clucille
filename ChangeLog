@@ -1,3 +1,14 @@
+0.5.6 / 2025-04-13
+
+	* Accept writer or reader in place of index for more efficient
+	bulk operations.
+	* Support metadata on :_content default field
+	* Support :include metadata for :_content, specifying fields to
+	include in default field
+	* Add tests for fields metadata, including defalut field
+	* Document writer/reader option and :_content metadata in README
+	* Document some Lucene gotchas in README
+
 0.5.5 / 2025-04-12
 
 	* Expand acceptabe types for dir arg in `disk-index`.
