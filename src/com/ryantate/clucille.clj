@@ -68,13 +68,17 @@
                      URI (Path/of ^URI dir-path)
                      File (.toPath ^File dir-path))))
 
-(defn- index-writer
+(defn- index?
+  [x]
+  (instance? Directory x))
+
+(defn index-writer
   "Create an IndexWriter."
   ^IndexWriter
   [index]
   (IndexWriter. index (IndexWriterConfig. *analyzer*)))
 
-(defn- index-reader
+(defn index-reader
   "Create an IndexReader."
   ^IndexReader
   [index]
@@ -147,27 +151,39 @@
         (add-field document :_content (default-field-value m default-meta) default-meta)))
     document))
 
+(defn- add-maps
+  [^IndexWriter writer maps]
+  (doseq [m maps]
+    (.addDocument writer
+                  (map->document m))))
+
 (defn add
   "Add hash-maps to the search index."
-  [index & maps]
-  (with-open [writer (index-writer index)]
-    (doseq [m maps]
-      (.addDocument writer
-                    (map->document m)))))
+  [index-or-writer & maps]
+  (if (index? index-or-writer)
+    (with-open [writer (index-writer index-or-writer)]
+      (add-maps writer maps))
+    (add-maps index-or-writer maps)))
+
+(defn- delete-maps
+  [^IndexWriter writer maps]
+  (doseq [m maps]
+    (let [^BooleanQuery$Builder qbuilder (BooleanQuery$Builder.)]
+      (doseq [[k v] m]
+        (.add qbuilder
+              (BooleanClause.
+               (TermQuery. (Term. (.toLowerCase (as-str k))
+                                  (.toLowerCase (as-str v))))
+               BooleanClause$Occur/MUST)))
+      (.deleteDocuments writer ^Query/1 (into-array BooleanQuery [(.build qbuilder)])))))
 
 (defn delete
   "Deletes hash-maps from the search index."
-  [index & maps]
-  (with-open [writer (index-writer index)]
-    (doseq [m maps]
-      (let [^BooleanQuery$Builder qbuilder (BooleanQuery$Builder.)]
-        (doseq [[k v] m]
-          (.add qbuilder
-                (BooleanClause.
-                 (TermQuery. (Term. (.toLowerCase (as-str k))
-                                    (.toLowerCase (as-str v))))
-                 BooleanClause$Occur/MUST)))
-        (.deleteDocuments writer ^Query/1 (into-array BooleanQuery [(.build qbuilder)]))))))
+  [index-or-writer & maps]
+  (if (index? index-or-writer)
+    (with-open [writer (index-writer index-or-writer)]
+      (delete-maps writer maps))
+    (delete-maps index-or-writer maps)))
 
 (defn- document->map
   "Turn a Document object into a map."
@@ -221,57 +237,77 @@
                              ^String separator))))
     (constantly nil)))
 
+(defn search-with
+  [^IndexReader reader query max-results {:keys [default-field
+                                                 default-operator
+                                                 highlight
+                                                 page
+                                                 results-per-page]
+                                          :or {default-field :_content
+                                               default-operator :or
+                                               page 0
+                                               results-per-page max-results}}]
+  (let [^IndexSearcher searcher (IndexSearcher. reader)
+        ^QueryParser parser (doto (QueryParser. (as-str default-field)
+                                                *analyzer*)
+                              (.setDefaultOperator (case default-operator 
+                                                     :and QueryParser/AND_OPERATOR
+                                                     :or  QueryParser/OR_OPERATOR)))
+        query (.parse parser query)
+        ^TopDocs hits (.search searcher query (int max-results))
+        highlighter (make-highlighter query searcher highlight)
+        start (* page results-per-page)
+        end (min (+ start results-per-page) (.value ^TotalHits (.totalHits hits)))
+        ^ScoreDoc/1 score-docs (.scoreDocs hits)
+        ^StoredFields stored-fields (.storedFields searcher)]
+    (with-meta (mapv (fn [i]
+                       (let [^ScoreDoc hit (aget score-docs i)]
+                         (document->map (.document stored-fields (.doc hit))
+                                        (.score hit)
+                                        highlighter)))
+                     (range start end))
+      {:_total-hits (.value ^TotalHits (.totalHits hits))
+       :_max-score (let [^ScoreDoc/1 score-docs (.scoreDocs hits)]
+                     (if (zero? (alength score-docs))
+                       Float/NaN
+                       (.score ^ScoreDoc (aget score-docs 0))))})))
+
 (defn search
   "Search the supplied index with a query string."
-  [index query max-results
-   & {:keys [highlight default-field default-operator page results-per-page]
-      :or {page 0 results-per-page max-results}}]
+  {:arglists '(  [index-or-reader query max-results
+                  & {:keys [highlight default-field default-operator page results-per-page]
+                     :or {page 0 results-per-page max-results}}])}
+  [index-or-reader query max-results & {:keys [default-field] :as opts}]
   (if (every? false? [default-field *content*])
     (throw (Exception. "No default search field specified"))
-    (with-open [reader (index-reader index)]
-      (let [default-field (or default-field :_content)
-            ^IndexSearcher searcher (IndexSearcher. reader)
-            ^QueryParser parser (doto (QueryParser. (as-str default-field)
-                                                    *analyzer*)
-                                  (.setDefaultOperator (case (or default-operator :or)
-                                                         :and QueryParser/AND_OPERATOR
-                                                         :or  QueryParser/OR_OPERATOR)))
-            query (.parse parser query)
-            ^TopDocs hits (.search searcher query (int max-results))
-            highlighter (make-highlighter query searcher highlight)
-            start (* page results-per-page)
-            end (min (+ start results-per-page) (.value ^TotalHits (.totalHits hits)))
-            ^ScoreDoc/1 score-docs (.scoreDocs hits)
-            ^StoredFields stored-fields (.storedFields searcher)]
-        (with-meta (mapv (fn [i]
-                           (let [^ScoreDoc hit (aget score-docs i)]
-                             (document->map (.document stored-fields (.doc hit))
-                                            (.score hit)
-                                            highlighter)))
-                         (range start end))
-          {:_total-hits (.value ^TotalHits (.totalHits hits))
-           :_max-score (let [^ScoreDoc/1 score-docs (.scoreDocs hits)]
-                         (if (zero? (alength score-docs))
-                           Float/NaN
-                           (.score ^ScoreDoc (aget score-docs 0))))})))))
+    (if (index? index-or-reader)
+      (with-open [reader (index-reader index-or-reader)]
+        (search-with reader query max-results opts))
+      (search-with index-or-reader query max-results opts))))
+
+(defn search-and-delete-with
+  [^IndexWriter writer query default-field]
+  (let [parser ^QueryParser (QueryParser. (as-str default-field) *analyzer*)
+        query  (.parse parser query)]
+    (.deleteDocuments writer ^Query/1 (into-array Query [query]))))
 
 (defn search-and-delete
   "Search the supplied index with a query string and then delete all
   of the results."
-  ([index query]
+  ([index-or-writer query]
    (if *content*
-     (search-and-delete index query :_content)
+     (search-and-delete index-or-writer query :_content)
      (throw (Exception. "No default search field specified"))))
-  ([index query default-field]
-   (with-open [writer (index-writer index)]
-     (let [parser ^QueryParser (QueryParser. (as-str default-field) *analyzer*)
-           query  (.parse parser query)]
-       (.deleteDocuments writer ^Query/1 (into-array Query [query]))))))
+  ([index-or-writer query default-field]
+   (if (index? index-or-writer)
+     (with-open [writer (index-writer index-or-writer)]
+       (search-and-delete-with writer query default-field))
+     (search-and-delete-with index-or-writer query default-field))))
 
 
 ;;;;VESTIGIAL:
-;;below this point functions are
-;;no longer used but here for backward compat (in case someone still calls them)
+;;below this point functions are no longer used but here for backward
+;;compat (in case someone still calls them)
 
 (defn- map-stored
   "Returns a hash-map containing all of the values in the map that

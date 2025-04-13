@@ -45,6 +45,15 @@
       (clucy/search-and-delete index "name:mary")
       (is (== 0 (count (clucy/search index "name:mary" 10))))))
 
+    (testing "passing writer and reader"
+    (let [index (clucy/memory-index)]
+      (with-open [writer (clucy/index-writer index)]
+        (doseq [person people] (clucy/add writer person))
+        (clucy/search-and-delete writer "name:miles"))
+      (with-open [reader (clucy/index-reader index)]
+        (is (== 0 (count (clucy/search reader "name:miles" 10))))
+        (is (== 1 (count (clucy/search reader "name:melinda" 10)))))))
+
   (testing "search fn with highlighting"
     (let [index (clucy/memory-index)
           config {:field :name}]
