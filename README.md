@@ -15,8 +15,8 @@ file:
 
 ```clojure
 	 com.ryantate/clucille {:git/url "https://github.com/ryantate/clucille.git"
-				:git/tag "v0.5.5"
-				:git/sha "8f7eca1"}
+				:git/tag "v0.5.6"
+				:git/sha "86c4bad"}
 ```
 
 Clojure version
