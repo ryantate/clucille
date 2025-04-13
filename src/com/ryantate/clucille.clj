@@ -120,27 +120,31 @@
                     (.setOmitNorms (not norms?)))]
            (Field. (as-str k) (as-str v) ^FieldType ft)))))
 
-(defn- concat-values
-  "Concatenate all the maps values being stored into a single string."
-  [m]
-  (str/join " "
-            (if-let [mmeta (meta m)]
+(defn- default-field-value
+  [m default-meta]
+  (let [mmeta (meta m) ;often nil
+        include (:include default-meta) ;often nil
+        includef (if include
+                       (comp include key)
+                       (fn [[k _]]
+                         (not (false? (get-in mmeta [k :stored])))))]
+    (str/join " "
               (into []
                     (comp
-                     (filter (fn [[k _]]
-                               (not (false? (get-in mmeta [k :stored])))))
+                     (filter includef)
                      (map val))
-                    m)
-              (vals m))))
+                    m))))
 
 (defn- map->document
   "Create a Document from a map."
-  [map]
-  (let [document (Document.)]
-    (doseq [[k v] map]
-      (add-field document k v (k (meta map))))
+  [m]
+  (let [document (Document.)
+        mmeta (meta m)]
+    (doseq [[k v] m]
+      (add-field document k v (k mmeta)))
     (when *content*
-      (add-field document :_content (concat-values map)))
+      (let [default-meta (:_content mmeta)]
+        (add-field document :_content (default-field-value m default-meta) default-meta)))
     document))
 
 (defn add
@@ -279,3 +283,17 @@
                     (not (false? (get-in mmeta [k :stored])))))
           m)
     m))
+
+(defn- concat-values
+  "Concatenate all the maps values being stored into a single string."
+  [m]
+  (str/join " "
+            (if-let [mmeta (meta m)]
+              (into []
+                    (comp
+                     (filter (fn [[k _]]
+                               (not (false? (get-in mmeta [k :stored])))))
+                     (map val))
+                    m)
+              (vals m))))
+
