@@ -61,6 +61,48 @@ scientists...
 
     (clucy/search-and-delete index "job:scientist")
 
+
+Optimizing writes and reads
+---------------------------
+
+For efficiency, the above functions can take a writer or reader in
+place of the index. Specifically, `search` can take a reader, and the
+other functions can take a writer.
+
+Writers can be made with `index-writer` and readers with `index-reader`.
+
+You'll want to make sure to close readers and writers that you
+open. Clojure's `with-open` macro can help with this:
+
+    (ns example				
+      (:require
+        [com.ryantate.clucille :as clucy]))
+      
+    (def index (clucy/memory-index))
+    
+    (with-open [writer (clucy/index-writer index)]
+      (clucy/add writer
+        {:name "Larry", :job "Producer"}
+        {:name "Bob", :job "Builder"}
+        {:name "Donald", :job "Computer Scientist"})
+      (clucy/delete writer
+        {:name "Bob", :job "Builder"})
+      (clucy/search-and-delete writer "job:scientist"))
+      
+      (with-open [reader (clucy/index-reader index)]
+        {:bob (clucy/search reader "bob" 10)
+	 :scientist (clucy/search reader "scientist" 10)})
+
+
+Note: Writers affect how readers and other writers access an index, in
+part because their changes are not seen by readers until they are
+closed. A reader held open and used repeatedly can return different
+results than when a reader is created for each use (for example when
+there are writes between the reads). Consult the Lucene
+documentation (particularly on `IndexWriter` and `IndexReader`) for
+details.
+
+
 Changing analyzer
 -----------------
 
@@ -80,6 +122,7 @@ this by rebinding the dynamic var `*analyzer*` when indexing and searching.
     (binding [clucy/*analyzer* (EnglishAnalyzer.)]
       (clucy/add index {:body "working caffeinated cats" :id 42})
       (clucy/search index "cat" 10))
+
 
 Per-field analyzer
 ------------------
@@ -109,14 +152,16 @@ The above applies a `SimpleAnalyzer` to the "tags" field and
 fallback analyzer argument and `*analyzer*` will be used as the
 fallback.
 
+
 Field options
 -------------
 
-By default all fields in a map are stored and indexed, and indexed
-in detail, with scoring and the frequency, position, and offsets
-of terms. If you would like more fine-grained control over which
-fields are stored and indexed, and how they are indexed, add one or
-more of the fields below to the metadata for your map.
+By default all fields in a map are stored and indexed, and indexed in
+detail, with scoring and the frequency, position, and offsets of
+terms. If you would like more fine-grained control over which fields
+are stored and indexed, and how they are indexed, add one or more of
+the fields below to the metadata for your map before using `add` to
+incorporate it into an index.
 
     (with-meta {:name "Larryd",
                 :job "Writer",
@@ -128,42 +173,67 @@ more of the fields below to the metadata for your map.
              :indexed org.apache.lucene.index.IndexOptions/DOCS_AND_FREQS}
        :catchphrase {:norms false}
        :summary {:indexed false}
-       :phone {:analyzed false}})
+       :phone {:analyzed false}
+       :_content {:stored false
+                  :include #{:name :job :bio :catchphrase}})
 
-When the map above is saved to the index, the `bio` field will be
+When the map above is saved to the index, the `:bio` field will be
 available for searching but will not be part of map in the search
 results since the `:stored` option is set to `false`. This makes sense
 when you are indexing something large (like the full text of a long
 article) and you don't want to pay the price of storing the entire
 text in the index.
 
-The `bio` field is also indexed using custom `IndexOptions` in the
+The `:bio` field is also indexed using custom `IndexOptions` in the
 `:indexed` option, replacing the default
 `DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS`.
 
-The `catchphrase` field will be available for searching and available in
+The `:catchphrase` field will be available for searching and available in
 the results but will not be factored in to the relevance scoring of
 the document since the `:norms` options is set to `false`.
 
-The `summary` field will be stored for display with the search results
+The `:summary` field will be stored for display with the search results
 but will not be indexed for searching, since it is redundant with
 other fields being indexed and thus the `:indexed` option is set to `false`.
 
-The `phone` field will not be tokenized since the `:analyzed` option is
+The `:phone` field will not be tokenized since the `:analyzed` option is
 set to `false`.
+
+The `:_content` field is the default search field. For more on what
+the default search field is, and the `:included` option, see the next
+section.
 
 Note: the `:analyzed` and `:norms` options do not matter when
 `:indexed` is set to `false` since they are indexing options.
+
+Note also: Lucene requires that field options be consistent within a
+"segment," meaning all the records written from a particular writer
+must have the same field options. In practical terms for clucille
+users, this means you need to make sure field options are consistent
+when you pass multiple maps to `add` or when you use the same writer
+across multiple `add` operations by passing a writer instead of an
+index (see "Optimizing writes and reads" section above).
 
 
 Default search field
 --------------------
 
-A field called "_content that contains all of the map's values is
-stored in the index for each map (excluding fields with `{:stored false}`
-in the map's metadata). This provides a default field to run all
-searches against. Anytime you call the search function without
-providing a default search field "_content" is used.
+A field called `:_content` is stored in the index for each map. This provides a
+default field to run all searches against.
 
-This behavior can be disabled by rebinding `*content*` to false, you must
-then specify the default search field with every search invocation.
+By default, `:_content` contains all of the map's values, excluding
+those for fields with `{:stored false}` in the map's metadata.
+
+Anytime you call the search function without providing a default
+search field, `:_content` is used. This behavior can be disabled by
+rebinding `*content*` to false. You must then specify the default
+search field with every search invocation.
+
+The `:_content` field is stored and indexed in the same default way as
+other fields. Metadata can set options on `:_content` just like any
+other field.
+
+But `:_content` has an extra metadata option: `:included`. The value
+of this option should be a set containing keys of fields that
+should go into `:_content`. This overrides the default selection
+criterion noted above (fields that are stored).
