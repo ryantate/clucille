@@ -272,6 +272,9 @@
                        Float/NaN
                        (.score ^ScoreDoc (aget score-docs 0))))})))
 
+(def no-default-field-ex (ex-info "No default search field specified"
+                                  {:type ::no-defalt-field}))
+
 (defn search
   "Search the supplied index with a query string."
   {:arglists '(  [index-or-reader query max-results
@@ -279,7 +282,7 @@
                      :or {page 0 results-per-page max-results}}])}
   [index-or-reader query max-results & {:keys [default-field] :as opts}]
   (if (every? false? [default-field *content*])
-    (throw (Exception. "No default search field specified"))
+    (throw no-default-field-ex)
     (if (index? index-or-reader)
       (with-open [reader (index-reader index-or-reader)]
         (search-with reader query max-results opts))
@@ -297,7 +300,7 @@
   ([index-or-writer query]
    (if *content*
      (search-and-delete index-or-writer query :_content)
-     (throw (Exception. "No default search field specified"))))
+     (throw no-default-field-ex)))
   ([index-or-writer query default-field]
    (if (index? index-or-writer)
      (with-open [writer (index-writer index-or-writer)]
