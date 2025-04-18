@@ -43,12 +43,10 @@
   ([field-analyzers]
    (fields-analyzer field-analyzers *analyzer*))
   (^Analyzer [field-analyzers default-analyzer]
-   (let [^HashMap jmap (reduce-kv (fn [^HashMap jmap fkey ^Analyzer fanalyzer]
-                                    (.put jmap (name fkey) fanalyzer)
-                                    jmap)
-                                  (HashMap.)
-                                  field-analyzers)]
-     (if (or (not jmap) (.isEmpty jmap))
+   (let [^HashMap jmap (HashMap.)]
+     (doseq [[fkey fanalyzer] field-analyzers]
+       (.put jmap (name fkey) fanalyzer))
+     (if (.isEmpty jmap)
        default-analyzer
        (PerFieldAnalyzerWrapper. default-analyzer jmap)))))
 
