@@ -54,7 +54,30 @@
       (apply clucy/add
              index-default-meta
              (map (fn [m] (with-meta m {:_content {:include #{:name}}})) people))
-      (is (= 0 (count (clucy/search index-default-meta "34" 10))))))
+      (is (= 0 (count (clucy/search index-default-meta "34" 10)))))
+    (let [person {:name "Larryd",
+                  :job "Writer",
+                  :phone "555.212.0202"
+                  :bio "When Larry and his friend Jerry began working on a pilot..."
+                  :catchphrase "pretty, pretty good"
+                  :summary "Larryd, Writer"}
+          field-map {:phone {:analyzed false}
+                     :bio {:stored false}
+                     :catchphrase {:norms false}
+                     :summary {:indexed false}
+                     :_content {:stored false
+                                :include #{:name :job :bio :catchphrase}}}
+          index (clucy/memory-index)]
+      (clucy/add index (with-meta person field-map))
+      (let [bio-hits (clucy/search index "bio:working" 10)
+            bio-hit (first bio-hits)]
+        (is (= 1 (count bio-hits)))
+        (is (set/subset? #{:name :job :phone :catchphrase} (set (keys bio-hit))))
+        (is (every? (complement bio-hit) #{:bio :_content})))
+      (is (= 0 (count (clucy/search index "summary:larryd" 10))))
+      (is (= 1 (count (clucy/search index "working" 10))))
+      (is (= 0 (count (clucy/search index "phone:555" 10))))
+      (is (= 1 (count (clucy/search index "phone:555.212.0202" 10))))))
   
   (testing "search-and-delete fn"
     (let [index (clucy/memory-index)]

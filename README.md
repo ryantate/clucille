@@ -74,6 +74,90 @@ scientists...
     (clucy/search-and-delete index "job:scientist")
 ```
 
+Query options
+-------------
+
+By default, clucille selects documents containing any terms (also
+known as an "OR" search):
+
+```clojure
+    (ns example				
+      (:require
+        [com.ryantate.clucille :as clucy]))
+
+    (def index (clucy/memory-index))
+
+    (clucy/add index {:name "Nora" :job "Builder"})
+
+    user=> (clucy/search index "ryan builder" 10)
+    ({:name "Nora", :job "Builder"})
+```
+
+This can be changed programatically with the `:default-operator`
+option to `search` or in the query with the "AND" keyword:
+
+```clojure
+    user=> (clucy/search index "ryan builder" 10 :default-operator :and)
+    ()
+
+    user=> (clucy/search index "ryan AND builder" 10)
+    []
+```
+
+Showing highlights
+------------------
+
+Search engine users better understand results when shown the context
+in which search terms appear. In Lucene this context is provided
+through "higlighters."
+
+You can activate highlighting with the `:highlight` option to
+`search`, which should either be `true` or a map of options. This will
+add a string of highlights to the metadata each result map under the
+`:_fragments` key.
+
+```clojure
+    (ns example				
+      (:require
+        [com.ryantate.clucille :as clucy]))
+
+    (def index (cluc/memory))
+
+    (clucy/add index {:body "automotive subsidies will result in reciprocal tariffs, opponents of subsidies say"
+                      :summary "car subsidies can have blowback"
+                      :author "jhowland"})
+
+    user=> (-> (clucy/search index "result subsidies" 10 {:highlight true})
+               first
+               meta
+               :_fragments)
+    "automotive <b>subsidies</b> will <b>result</b> in reciprocal tariffs, opponents of <b>subsidies</b> say car <b>subsidies</b> can have blowback jhowland"
+
+    user=> (-> (clucy/search index
+                             "result subsidies"
+                             10
+                             :highlight {:field :summary
+                                         :pre "<i>"
+                                         :post "</i>"
+                                         :separator " ... "
+                                         :max-fragments 2})
+               first
+               meta
+               :_fragments)
+    "car <i>subsidies</i> can have blowback"	  
+```
+
+Explanation of `:highlight` map options:
+
+| option           | description               | default                     |
+|------------------|---------------------------|-----------------------------|
+| `:field`         | field to highlight        | `:_content `  
+| `:pre`           | string before highlight   | "<b>" 
+| `:post`          | string after highlight    | "</b>"
+| `:separator`     | string to join highlights | "..."
+| `:max-fragments` | max highlights            | 5
+
+
 Optimizing writes and reads
 ---------------------------
 
