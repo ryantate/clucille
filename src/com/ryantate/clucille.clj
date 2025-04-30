@@ -19,7 +19,7 @@
                              TermQuery TopDocs TotalHits)
    (org.apache.lucene.search.highlight Highlighter QueryScorer SimpleHTMLFormatter)
    (org.apache.lucene.store ByteBuffersDirectory Directory NIOFSDirectory)
-   (org.apache.lucene.util Version)))
+   (org.apache.lucene.util QueryBuilder Version)))
 
 (set! *warn-on-reflection* true)
 
@@ -168,14 +168,19 @@
 (defn- delete-maps
   [^IndexWriter writer maps]
   (doseq [m maps]
-    (let [^BooleanQuery$Builder qbuilder (BooleanQuery$Builder.)]
+    (let [mmeta (meta m)
+          ^Analyzer analyzer (.getAnalyzer writer)
+          ^BooleanQuery$Builder bbuilder (BooleanQuery$Builder.)
+          ^QueryBuilder qbuilder (QueryBuilder. analyzer)]
       (doseq [[k v] m]
-        (.add qbuilder
-              (BooleanClause.
-               (TermQuery. (Term. (.toLowerCase (as-str k))
-                                  (.toLowerCase (as-str v))))
-               BooleanClause$Occur/MUST)))
-      (.deleteDocuments writer ^Query/1 (into-array BooleanQuery [(.build qbuilder)])))))
+        (when (not (false? (get-in mmeta [k :indexed])))
+          (.add bbuilder
+                (if (false? (get-in mmeta [k :analyzed]))
+                  (TermQuery. (Term. (as-str k) (as-str v)))
+                  (.createPhraseQuery qbuilder (as-str k) (as-str v)))
+                BooleanClause$Occur/MUST)))
+      (.deleteDocuments writer
+                        ^Query/1 (into-array BooleanQuery [(.build bbuilder)])))))
 
 (defn delete
   "Deletes hash-maps from the search index."

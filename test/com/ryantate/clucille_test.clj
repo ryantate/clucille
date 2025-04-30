@@ -2,7 +2,9 @@
   (:require
    [clojure.set :as set]
    [clojure.test :refer :all]
-   [com.ryantate.clucille :as clucy]))
+   [com.ryantate.clucille :as clucy])
+  (:import
+   (org.apache.lucene.analysis.en EnglishAnalyzer)))
 
 (def people [{:name "Miles" :age 36}
              {:name "Emily" :age 0.3}
@@ -94,3 +96,12 @@
       (is (empty? (set/intersection
                    (set (clucy/search index "m*" 10 :page 0 :results-per-page 3))
                    (set (clucy/search index "m*" 10 :page 1 :results-per-page 3))))))))
+
+(deftest deletes-maps-with-stemmed-terms
+  (let [index (clucy/memory-index)
+        m {:title "Cats on a hot tin roof"}]
+    (binding [clucy/*analyzer* (EnglishAnalyzer.)]
+      (clucy/add index m)
+      (is (= 1 (count (clucy/search index "cat on a hot" 10))))
+      (clucy/delete index m)
+      (is (= 0 (count (clucy/search index "cat on a hot" 10)))))))
